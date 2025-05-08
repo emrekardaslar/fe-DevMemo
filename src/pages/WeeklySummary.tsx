@@ -268,7 +268,7 @@ const WeeklySummaryPage: React.FC = () => {
     <PageContainer>
       <PageHeader>
         <Title>Weekly Summary</Title>
-        <BackLink to="/dashboard">← Back to dashboard</BackLink>
+        <BackLink to="/">← Back to dashboard</BackLink>
       </PageHeader>
       
       <Card>
