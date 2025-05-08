@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { queryAPI } from '../services/api';
+import { Link } from 'react-router-dom';
+import { queryAPI, standupAPI } from '../services/api';
+import { Standup } from '../redux/standups/types';
+import { FiSearch, FiX, FiChevronRight, FiAlertCircle, FiInfo, FiTag, FiBarChart, FiCalendar, FiClock } from 'react-icons/fi';
 
 const PageContainer = styled.div`
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
+  padding: 1rem;
 `;
 
 const PageHeader = styled.div`
@@ -29,19 +33,23 @@ const QueryContainer = styled.div`
 const QueryForm = styled.form`
   display: flex;
   margin-top: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
 `;
 
 const QueryInput = styled.input`
   flex: 1;
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   font-size: 1rem;
   border: 1px solid var(--border-color);
-  border-radius: 4px 0 0 4px;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
   
   &:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    box-shadow: inset 0 0 0 2px rgba(52, 152, 219, 0.2);
   }
 `;
 
@@ -52,8 +60,11 @@ const QueryButton = styled.button`
   padding: 0 1.5rem;
   font-size: 1rem;
   font-weight: 500;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 8px 8px 0;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   
   &:hover {
     background-color: var(--primary-dark);
@@ -63,6 +74,53 @@ const QueryButton = styled.button`
     background-color: var(--text-secondary);
     cursor: not-allowed;
   }
+`;
+
+const ClearButton = styled.button`
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  margin-left: 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  
+  &:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+  }
+`;
+
+const QueryCategoriesContainer = styled.div`
+  margin-top: 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+`;
+
+const QueryCategory = styled.div`
+  background-color: var(--card-background);
+  padding: 1.25rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const CategoryTitle = styled.div`
+  font-size: 1rem;
+  margin: 0 0 0.75rem 0;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
 `;
 
 const SuggestedQueries = styled.div`
@@ -85,18 +143,29 @@ const SuggestedQueryButton = styled.button`
   margin-right: 0.5rem;
   margin-bottom: 0.5rem;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   
   &:hover {
     background-color: rgba(0, 0, 0, 0.05);
     border-color: var(--primary-color);
+    color: var(--primary-color);
   }
 `;
 
 const ResultsContainer = styled.div`
   background-color: var(--card-background);
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
+  margin-bottom: 2rem;
+  animation: fadeIn 0.3s ease-in-out;
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 `;
 
 const ResultsHeader = styled.div`
@@ -117,29 +186,281 @@ const QueryText = styled.p`
   font-style: italic;
   color: var(--text-secondary);
   margin: 0;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const ResultsContent = styled.div`
   line-height: 1.6;
 `;
 
+const AnswerContainer = styled.div`
+  background-color: rgba(52, 152, 219, 0.1);
+  border-left: 3px solid var(--primary-color);
+  padding: 1rem;
+  margin: 1rem 0;
+  font-size: 1.1rem;
+`;
+
+const StandupsList = styled.div`
+  margin-top: 1.5rem;
+`;
+
+const StandupItem = styled.div`
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: white;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const StandupDate = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+`;
+
+const StandupHighlight = styled.span`
+  background-color: rgba(241, 196, 15, 0.1);
+  color: #f39c12;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 20px;
+  font-weight: normal;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+`;
+
+const StandupTags = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const StandupTag = styled.span`
+  background-color: rgba(52, 152, 219, 0.1);
+  color: var(--primary-color);
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+`;
+
+const StandupContent = styled.div`
+  margin: 0.5rem 0;
+`;
+
+const StandupField = styled.div`
+  margin-bottom: 0.75rem;
+  
+  h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+  
+  p {
+    margin: 0;
+    white-space: pre-line;
+  }
+`;
+
+const StandupLink = styled(Link)`
+  display: inline-flex;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--primary-color);
+  text-decoration: none;
+  align-items: center;
+  gap: 0.25rem;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 const LoadingMessage = styled.div`
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const LoadingSpinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin 1s ease-in-out infinite;
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const ErrorMessage = styled.div`
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--error-color);
+  background-color: rgba(231, 76, 60, 0.1);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+`;
+
+const NoResultsMessage = styled.div`
   text-align: center;
   padding: 2rem;
   color: var(--text-secondary);
 `;
 
-const ErrorMessage = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: var(--error-color);
-  background-color: rgba(231, 76, 60, 0.1);
+const TabsContainer = styled.div`
+  display: flex;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+`;
+
+const Tab = styled.button<{ active: boolean }>`
+  padding: 0.75rem 1.25rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid ${props => props.active ? 'var(--primary-color)' : 'transparent'};
+  color: ${props => props.active ? 'var(--primary-color)' : 'var(--text-color)'};
+  font-weight: ${props => props.active ? '500' : 'normal'};
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &:hover {
+    border-bottom-color: ${props => props.active ? 'var(--primary-color)' : 'var(--border-color)'};
+  }
+`;
+
+const SummaryCard = styled.div`
+  background-color: white;
+  padding: 1.25rem;
   border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-color);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const SummaryHeader = styled.div`
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const QueryHistoryContainer = styled.div`
+  margin-top: 1.5rem;
+`;
+
+const QueryHistoryTitle = styled.h3`
+  font-size: 1rem;
+  margin: 0 0 0.75rem 0;
+`;
+
+const QueryHistoryList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+`;
+
+const DataVisualization = styled.div`
+  margin: 1.5rem 0;
+  background-color: white;
+  padding: 1.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+`;
+
+const VisualizationTitle = styled.h3`
+  font-size: 1rem;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const TagCloud = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+`;
+
+const TagCloudItem = styled.div<{ size: number }>`
+  font-size: ${props => 0.7 + (props.size * 0.05)}rem;
+  background-color: rgba(52, 152, 219, 0.1);
+  color: var(--primary-color);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  transition: all 0.2s;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: rgba(52, 152, 219, 0.2);
+    transform: scale(1.05);
+  }
+`;
+
+const TipsContainer = styled.div`
+  background-color: rgba(46, 204, 113, 0.1);
+  border-left: 3px solid #2ecc71;
+  padding: 1rem;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
 `;
 
 interface QueryResult {
-  answer: string;
+  answer?: string;
+  message?: string;
   relatedStandups?: string[];
+  data?: any;
+  examples?: string[];
+}
+
+interface ProcessedStandup extends Standup {
+  formattedDate?: string;
 }
 
 const QueryPage: React.FC = () => {
@@ -147,14 +468,103 @@ const QueryPage: React.FC = () => {
   const [result, setResult] = useState<QueryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [relatedStandups, setRelatedStandups] = useState<ProcessedStandup[]>([]);
+  const [activeTab, setActiveTab] = useState('results');
+  const [queryHistory, setQueryHistory] = useState<string[]>([]);
   
-  const suggestedQueries = [
-    'What did I do last week?',
-    'What are my current blockers?',
-    'Show me standups about backend',
-    'What am I working on this week?',
-    'What were my highlights last month?'
-  ];
+  // Get query history from localStorage on mount
+  useEffect(() => {
+    const storedHistory = localStorage.getItem('queryHistory');
+    if (storedHistory) {
+      try {
+        setQueryHistory(JSON.parse(storedHistory));
+      } catch (e) {
+        console.error('Failed to parse query history:', e);
+      }
+    }
+  }, []);
+
+  // Categories of suggested queries with icons
+  const querySuggestions = {
+    "Time-based": [
+      "What did I do last week?",
+      "What am I working on this week?",
+      "What tasks did I complete in April?"
+    ],
+    "Blocker Analysis": [
+      "What are my current blockers?",
+      "Show all recurring blockers",
+      "Any blockers related to API?"
+    ],
+    "Tag-based": [
+      "Show me standups about frontend",
+      "Find entries tagged with backend",
+      "What tasks involve database work?"
+    ],
+    "Performance": [
+      "What were my highlights last month?",
+      "Show days with high productivity",
+      "What are my most productive days?"
+    ]
+  };
+
+  // Get category icon
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case "Time-based":
+        return <FiClock />;
+      case "Blocker Analysis":
+        return <FiAlertCircle />;
+      case "Tag-based":
+        return <FiTag />;
+      case "Performance":
+        return <FiBarChart />;
+      default:
+        return <FiInfo />;
+    }
+  };
+  
+  // Fetch related standups
+  useEffect(() => {
+    const fetchStandups = async (dates: string[]) => {
+      try {
+        const standups: ProcessedStandup[] = await Promise.all(
+          dates.map(async (date) => {
+            const response = await standupAPI.getByDate(date);
+            const standup = response.data;
+            
+            // Format the date for display
+            const formattedDate = new Date(date).toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            });
+            
+            return { ...standup, formattedDate };
+          })
+        );
+        
+        setRelatedStandups(standups);
+      } catch (error) {
+        console.error('Error fetching related standups:', error);
+      }
+    };
+    
+    if (result?.relatedStandups && result.relatedStandups.length > 0) {
+      fetchStandups(result.relatedStandups);
+    }
+  }, [result]);
+
+  // Save query to history
+  const saveQueryToHistory = (queryText: string) => {
+    const updatedHistory = [
+      queryText,
+      ...queryHistory.filter(q => q !== queryText).slice(0, 9) // Keep only last 10 unique queries
+    ];
+    setQueryHistory(updatedHistory);
+    localStorage.setItem('queryHistory', JSON.stringify(updatedHistory));
+  };
   
   const handleSubmitQuery = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,10 +575,37 @@ const QueryPage: React.FC = () => {
     
     setLoading(true);
     setError(null);
+    setResult(null);
+    setRelatedStandups([]);
+    setActiveTab('results');
+    
+    // Save query to history
+    saveQueryToHistory(query);
     
     try {
       const response = await queryAPI.processQuery(query);
       setResult(response.data);
+      
+      // If we have data but no explicit answer, create one
+      if (response.data.data && !response.data.answer) {
+        let generatedAnswer = '';
+        
+        if (response.data.data.period) {
+          // Weekly summary
+          generatedAnswer = `Here's your summary for ${response.data.data.period}`;
+        } else if (response.data.data.month) {
+          // Monthly summary
+          generatedAnswer = `Here's your summary for ${response.data.data.month}`;
+        } else if (Array.isArray(response.data.data)) {
+          // Likely blockers or search results
+          generatedAnswer = `Found ${response.data.data.length} results for your query`;
+        }
+        
+        setResult({
+          ...response.data,
+          answer: generatedAnswer
+        });
+      }
     } catch (error) {
       setError('An error occurred processing your query. Please try again.');
       console.error('Query error:', error);
@@ -181,6 +618,205 @@ const QueryPage: React.FC = () => {
     setQuery(suggestedQuery);
     setResult(null);
     setError(null);
+    setRelatedStandups([]);
+  };
+  
+  const clearQuery = () => {
+    setQuery('');
+    setResult(null);
+    setError(null);
+    setRelatedStandups([]);
+  };
+  
+  // Extract tags from data for visualization
+  const extractTags = () => {
+    if (!result || !result.data) return [];
+    
+    // For weekly summary
+    if (result.data.period && result.data.tags) {
+      return result.data.tags.map((tag: string) => ({ tag, count: 1 }));
+    }
+    
+    // For monthly summary
+    if (result.data.topTags) {
+      return result.data.topTags;
+    }
+    
+    // For standups
+    if (relatedStandups.length > 0) {
+      const tagCount: Record<string, number> = {};
+      relatedStandups.forEach(standup => {
+        standup.tags.forEach(tag => {
+          tagCount[tag] = (tagCount[tag] || 0) + 1;
+        });
+      });
+      
+      return Object.entries(tagCount)
+        .map(([tag, count]) => ({ tag, count }))
+        .sort((a, b) => b.count - a.count);
+    }
+    
+    return [];
+  };
+  
+  // Render the summary data based on type
+  const renderSummaryData = () => {
+    if (!result || !result.data) {
+      return null;
+    }
+    
+    // Weekly summary
+    if (result.data.period) {
+      return (
+        <>
+          <SummaryCard>
+            <SummaryHeader><FiCalendar /> Period: {result.data.period}</SummaryHeader>
+            <p>Total entries: {result.data.accomplishments.length}</p>
+          </SummaryCard>
+          
+          <SummaryCard>
+            <SummaryHeader><FiBarChart /> Accomplishments</SummaryHeader>
+            <ul>
+              {result.data.accomplishments.map((item: any, index: number) => (
+                <li key={index}>
+                  <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.done}
+                </li>
+              ))}
+            </ul>
+          </SummaryCard>
+          
+          <SummaryCard>
+            <SummaryHeader><FiBarChart /> Plans</SummaryHeader>
+            <ul>
+              {result.data.plans.map((item: any, index: number) => (
+                <li key={index}>
+                  <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.plan}
+                </li>
+              ))}
+            </ul>
+          </SummaryCard>
+          
+          {result.data.blockers.length > 0 && (
+            <SummaryCard>
+              <SummaryHeader><FiAlertCircle /> Blockers</SummaryHeader>
+              <ul>
+                {result.data.blockers.map((item: any, index: number) => (
+                  <li key={index}>
+                    <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.blocker}
+                  </li>
+                ))}
+              </ul>
+            </SummaryCard>
+          )}
+          
+          {result.data.tags.length > 0 && (
+            <SummaryCard>
+              <SummaryHeader><FiTag /> Tags</SummaryHeader>
+              <StandupTags>
+                {result.data.tags.map((tag: string, index: number) => (
+                  <StandupTag key={index}><FiTag /> {tag}</StandupTag>
+                ))}
+              </StandupTags>
+            </SummaryCard>
+          )}
+          
+          <DataVisualization>
+            <VisualizationTitle><FiBarChart /> Tag Distribution</VisualizationTitle>
+            <TagCloud>
+              {extractTags().map((tag: any, index: number) => (
+                <TagCloudItem 
+                  key={index}
+                  size={tag.count}
+                  onClick={() => handleSuggestedQuery(`Show me standups tagged with ${tag.tag}`)}
+                >
+                  {tag.tag}
+                </TagCloudItem>
+              ))}
+            </TagCloud>
+          </DataVisualization>
+        </>
+      );
+    }
+    
+    // Monthly summary
+    if (result.data.month) {
+      return (
+        <>
+          <SummaryCard>
+            <SummaryHeader><FiCalendar /> Month: {result.data.month}</SummaryHeader>
+            <p>Total entries: {result.data.totalEntries}</p>
+          </SummaryCard>
+          
+          {result.data.topTags.length > 0 && (
+            <SummaryCard>
+              <SummaryHeader><FiTag /> Top Tags</SummaryHeader>
+              <TagCloud>
+                {result.data.topTags.map((tag: any, index: number) => (
+                  <TagCloudItem 
+                    key={index}
+                    size={tag.count}
+                    onClick={() => handleSuggestedQuery(`Show me standups tagged with ${tag.tag}`)}
+                  >
+                    {tag.tag} ({tag.count})
+                  </TagCloudItem>
+                ))}
+              </TagCloud>
+            </SummaryCard>
+          )}
+          
+          {result.data.weeklySummaries.map((week: any, weekIndex: number) => (
+            <SummaryCard key={weekIndex}>
+              <SummaryHeader><FiCalendar /> {week.week}</SummaryHeader>
+              <h4>Accomplishments:</h4>
+              <ul>
+                {week.accomplishments.map((item: any, index: number) => (
+                  <li key={index}>
+                    <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.done}
+                  </li>
+                ))}
+              </ul>
+              
+              <h4>Tags:</h4>
+              <StandupTags>
+                {week.tags.map((tag: string, index: number) => (
+                  <StandupTag key={index}><FiTag /> {tag}</StandupTag>
+                ))}
+              </StandupTags>
+            </SummaryCard>
+          ))}
+        </>
+      );
+    }
+    
+    // Blockers
+    if (Array.isArray(result.data) && result.data.length > 0 && result.data[0].blocker) {
+      return (
+        <>
+          {result.data.map((blocker: any, index: number) => (
+            <SummaryCard key={index}>
+              <SummaryHeader><FiAlertCircle /> {blocker.blocker}</SummaryHeader>
+              <p>Occurrences: {blocker.occurrences}</p>
+              <p>Dates:</p>
+              <ul>
+                {blocker.dates.map((date: string, dateIndex: number) => (
+                  <li key={dateIndex}>
+                    <Link to={`/standups/${date}`}>
+                      {new Date(date).toLocaleDateString()}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </SummaryCard>
+          ))}
+        </>
+      );
+    }
+    
+    return (
+      <NoResultsMessage>
+        No detailed summary available for this query.
+      </NoResultsMessage>
+    );
   };
   
   return (
@@ -199,51 +835,203 @@ const QueryPage: React.FC = () => {
             onChange={(e) => setQuery(e.target.value)}
           />
           <QueryButton type="submit" disabled={loading || !query.trim()}>
-            {loading ? 'Processing...' : 'Ask'}
+            {loading ? 'Processing...' : <><FiSearch /> Ask</>}
           </QueryButton>
+          {query && (
+            <ClearButton type="button" onClick={clearQuery}>
+              <FiX /> Clear
+            </ClearButton>
+          )}
         </QueryForm>
         
-        <SuggestedQueries>
-          <SuggestedQueryTitle>Try asking:</SuggestedQueryTitle>
-          {suggestedQueries.map((suggestedQuery, index) => (
-            <SuggestedQueryButton
-              key={index}
-              onClick={() => handleSuggestedQuery(suggestedQuery)}
-            >
-              {suggestedQuery}
-            </SuggestedQueryButton>
-          ))}
-        </SuggestedQueries>
+        {queryHistory.length > 0 && !result && !loading && (
+          <QueryHistoryContainer>
+            <QueryHistoryTitle>Recent queries:</QueryHistoryTitle>
+            <QueryHistoryList>
+              {queryHistory.map((historyItem, index) => (
+                <SuggestedQueryButton
+                  key={index}
+                  onClick={() => handleSuggestedQuery(historyItem)}
+                >
+                  <FiClock /> {historyItem}
+                </SuggestedQueryButton>
+              ))}
+            </QueryHistoryList>
+          </QueryHistoryContainer>
+        )}
+        
+        {!result && !loading && (
+          <>
+            <SuggestedQueries>
+              <SuggestedQueryTitle>Try asking:</SuggestedQueryTitle>
+              {Object.entries(querySuggestions).flatMap(([category, queries]) => 
+                queries.slice(0, 1).map(query => ({ category, query })) // Just show 1 from each category
+              ).map(({ category, query }, index) => (
+                <SuggestedQueryButton
+                  key={index}
+                  onClick={() => handleSuggestedQuery(query)}
+                >
+                  {getCategoryIcon(category)} {query}
+                </SuggestedQueryButton>
+              ))}
+            </SuggestedQueries>
+            
+            <QueryCategoriesContainer>
+              {Object.entries(querySuggestions).map(([category, queries]) => (
+                <QueryCategory key={category}>
+                  <CategoryTitle>{getCategoryIcon(category)} {category}</CategoryTitle>
+                  {queries.map((suggestedQuery, index) => (
+                    <SuggestedQueryButton
+                      key={index}
+                      onClick={() => handleSuggestedQuery(suggestedQuery)}
+                    >
+                      {suggestedQuery}
+                    </SuggestedQueryButton>
+                  ))}
+                </QueryCategory>
+              ))}
+            </QueryCategoriesContainer>
+            
+            <TipsContainer>
+              <FiInfo />
+              <div>
+                <strong>Pro tip:</strong> You can ask about specific time periods, tags, or blockers. 
+                Try questions like "What did I work on last week?" or "Show me entries about frontend development."
+              </div>
+            </TipsContainer>
+          </>
+        )}
       </QueryContainer>
       
-      {loading && <LoadingMessage>Processing your query...</LoadingMessage>}
+      {loading && (
+        <LoadingMessage>
+          <LoadingSpinner />
+          Processing your query...
+        </LoadingMessage>
+      )}
       
-      {error && <ErrorMessage>{error}</ErrorMessage>}
+      {error && (
+        <ErrorMessage>
+          <FiAlertCircle />
+          {error}
+        </ErrorMessage>
+      )}
       
       {!loading && !error && result && (
-        <ResultsContainer>
-          <ResultsHeader>
-            <ResultsTitle>Results</ResultsTitle>
-            <QueryText>"{query}"</QueryText>
-          </ResultsHeader>
-          
-          <ResultsContent>
-            <p>{result.answer}</p>
+        <>
+          <ResultsContainer>
+            <ResultsHeader>
+              <ResultsTitle>Results</ResultsTitle>
+              <QueryText>"{query}"</QueryText>
+            </ResultsHeader>
             
-            {result.relatedStandups && result.relatedStandups.length > 0 && (
-              <>
-                <h3>Related Standups:</h3>
-                <ul>
-                  {result.relatedStandups.map((date, index) => (
-                    <li key={index}>
-                      <a href={`/standups/${date}`}>{new Date(date).toLocaleDateString()}</a>
-                    </li>
-                  ))}
-                </ul>
-              </>
+            {result.message && (
+              <ResultsContent>
+                <p>{result.message}</p>
+                
+                {result.examples && (
+                  <>
+                    <h3>Try these examples:</h3>
+                    <ul>
+                      {result.examples.map((example, index) => (
+                        <li key={index}>
+                          <SuggestedQueryButton onClick={() => handleSuggestedQuery(example)}>
+                            <FiChevronRight /> {example}
+                          </SuggestedQueryButton>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </ResultsContent>
             )}
-          </ResultsContent>
-        </ResultsContainer>
+            
+            {result.answer && (
+              <AnswerContainer>
+                {result.answer}
+              </AnswerContainer>
+            )}
+            
+            {(result.data || relatedStandups.length > 0) && (
+              <TabsContainer>
+                <Tab 
+                  active={activeTab === 'results'} 
+                  onClick={() => setActiveTab('results')}
+                >
+                  <FiInfo /> Results
+                </Tab>
+                {result.data && (
+                  <Tab 
+                    active={activeTab === 'details'} 
+                    onClick={() => setActiveTab('details')}
+                  >
+                    <FiBarChart /> Details
+                  </Tab>
+                )}
+                {relatedStandups.length > 0 && (
+                  <Tab 
+                    active={activeTab === 'standups'} 
+                    onClick={() => setActiveTab('standups')}
+                  >
+                    <FiCalendar /> Standups ({relatedStandups.length})
+                  </Tab>
+                )}
+              </TabsContainer>
+            )}
+            
+            {activeTab === 'details' && result.data && renderSummaryData()}
+          </ResultsContainer>
+          
+          {activeTab === 'standups' && relatedStandups.length > 0 && (
+            <StandupsList>
+              {relatedStandups.map(standup => (
+                <StandupItem key={standup.date}>
+                  <StandupDate>
+                    {standup.formattedDate}
+                    {standup.isHighlight && (
+                      <StandupHighlight>
+                        <FiInfo /> Highlight
+                      </StandupHighlight>
+                    )}
+                  </StandupDate>
+                  
+                  <StandupContent>
+                    <StandupField>
+                      <h4>Yesterday:</h4>
+                      <p>{standup.yesterday}</p>
+                    </StandupField>
+                    
+                    <StandupField>
+                      <h4>Today:</h4>
+                      <p>{standup.today}</p>
+                    </StandupField>
+                    
+                    {standup.blockers && (
+                      <StandupField>
+                        <h4>Blockers:</h4>
+                        <p>{standup.blockers}</p>
+                      </StandupField>
+                    )}
+                  </StandupContent>
+                  
+                  {standup.tags.length > 0 && (
+                    <StandupTags>
+                      {standup.tags.map((tag, index) => (
+                        <StandupTag key={index}>
+                          <FiTag /> {tag}
+                        </StandupTag>
+                      ))}
+                    </StandupTags>
+                  )}
+                  
+                  <StandupLink to={`/standups/${standup.date}`}>
+                    <FiChevronRight /> View full standup
+                  </StandupLink>
+                </StandupItem>
+              ))}
+            </StandupsList>
+          )}
+        </>
       )}
     </PageContainer>
   );
