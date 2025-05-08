@@ -134,15 +134,22 @@ export const standupAPI = {
       const url = `${API_URL}/standups/${date}/highlight`;
       console.log('API: Making PATCH request to:', url);
       
+      // Include timestamp for debugging overlap issues
+      const timestamp = new Date().toISOString();
+      console.log(`API: Request started at ${timestamp}`);
+      
       const response = await axios({
         method: 'PATCH',
         url: url,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-Request-Time': timestamp
         }
       });
       
-      console.log('API: Toggle highlight raw response:', response);
+      console.log(`API: Response received at ${new Date().toISOString()}`);
+      console.log('API: Toggle highlight response status:', response.status);
+      console.log('API: Toggle highlight response data:', response.data);
       
       // Return full response for consistent handling
       return {

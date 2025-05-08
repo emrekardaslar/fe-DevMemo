@@ -188,6 +188,8 @@ const StandupDetail: React.FC = () => {
   
   const handleToggleHighlight = () => {
     if (date) {
+      console.log('StandupDetail: Toggling highlight for date:', date);
+      console.log('StandupDetail: Current highlight status:', currentStandup?.isHighlight);
       dispatch(toggleHighlight(date));
     }
   };

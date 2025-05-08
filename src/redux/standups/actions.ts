@@ -100,9 +100,12 @@ export const deleteStandup = (date: string): ThunkAction<void, RootState, unknow
 };
 
 export const toggleHighlight = (date: string): ThunkAction<void, RootState, unknown, StandupAction> => {
-  return async (dispatch) => {
+  return async (dispatch, getState) => {
     try {
       console.log('toggleHighlight action: Starting for date:', date);
+      const currentState = getState();
+      console.log('toggleHighlight action: Current standups state:', currentState.standups);
+      
       dispatch({ type: StandupActionTypes.TOGGLE_HIGHLIGHT_REQUEST });
       
       // Call the API endpoint
@@ -134,7 +137,14 @@ export const toggleHighlight = (date: string): ThunkAction<void, RootState, unkn
         payload: standup
       });
       
-      // Optionally refresh standups list to ensure state consistency
+      // Refresh the current standup if we're on the detail page
+      const currentStandup = currentState.standups.currentStandup;
+      if (currentStandup && currentStandup.date === date) {
+        console.log('toggleHighlight action: Refreshing current standup detail');
+        dispatch(fetchStandup(date));
+      }
+      
+      // Refresh standups list to ensure state consistency
       dispatch(fetchStandups());
       
     } catch (error) {

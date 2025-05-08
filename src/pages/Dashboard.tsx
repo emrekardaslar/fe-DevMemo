@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { fetchStandups } from '../redux/standups/actions';
+import { fetchStandups, toggleHighlight, deleteStandup } from '../redux/standups/actions';
 import { RootState } from '../redux/store';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { standupAPI, queryAPI } from '../services/api';
@@ -204,6 +204,30 @@ const Dashboard: React.FC = () => {
     fetchRecentStandups();
   }, [dispatch]);
   
+  const handleToggleHighlight = (date: string) => {
+    console.log('Dashboard: Toggling highlight for date:', date);
+    dispatch(toggleHighlight(date));
+    
+    setRecentStandups(prevStandups => 
+      prevStandups.map(standup => 
+        standup.date === date 
+          ? { ...standup, isHighlight: !standup.isHighlight } 
+          : standup
+      )
+    );
+  };
+  
+  const handleDelete = (date: string) => {
+    if (window.confirm('Are you sure you want to delete this standup?')) {
+      console.log('Dashboard: Deleting standup for date:', date);
+      dispatch(deleteStandup(date));
+      
+      setRecentStandups(prevStandups => 
+        prevStandups.filter(standup => standup.date !== date)
+      );
+    }
+  };
+  
   const renderStats = () => {
     if (loadingStats || !stats) {
       return <LoadingMessage>Loading stats...</LoadingMessage>;
@@ -280,8 +304,8 @@ const Dashboard: React.FC = () => {
               <StandupCard
                 key={standup.date}
                 standup={standup}
-                onToggleHighlight={() => {}}
-                onDelete={() => {}}
+                onToggleHighlight={handleToggleHighlight}
+                onDelete={handleDelete}
               />
             ))
           )}

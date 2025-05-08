@@ -217,6 +217,15 @@ const ToggleLabel = styled.label`
   display: flex;
   align-items: center;
   cursor: pointer;
+  user-select: none;
+  
+  &:hover {
+    opacity: 0.9;
+  }
+  
+  &:active {
+    opacity: 0.8;
+  }
 `;
 
 const ToggleSwitch = styled.div<{ checked: boolean }>`
@@ -227,6 +236,7 @@ const ToggleSwitch = styled.div<{ checked: boolean }>`
   border-radius: 20px;
   margin-right: 0.75rem;
   transition: background-color 0.2s;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
   
   &::after {
     content: '';
@@ -238,6 +248,11 @@ const ToggleSwitch = styled.div<{ checked: boolean }>`
     background-color: white;
     border-radius: 50%;
     transition: left 0.2s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+  
+  label:hover & {
+    border: ${props => props.checked ? 'none' : '1px solid var(--primary-color)'};
   }
 `;
 
@@ -420,10 +435,15 @@ const StandupForm: React.FC = () => {
   };
   
   const handleToggleHighlight = () => {
-    setFormData(prev => ({
-      ...prev,
-      isHighlight: !prev.isHighlight
-    }));
+    console.log('Toggle highlight clicked. Current value:', formData.isHighlight);
+    setFormData(prev => {
+      const newValue = !prev.isHighlight;
+      console.log('Setting isHighlight to:', newValue);
+      return {
+        ...prev,
+        isHighlight: newValue
+      };
+    });
   };
   
   const handleSetRating = (type: 'mood' | 'productivity', value: number) => {
@@ -629,11 +649,12 @@ const StandupForm: React.FC = () => {
         </RatingContainer>
         
         <ToggleContainer>
-          <ToggleLabel>
+          <ToggleLabel htmlFor="highlight-toggle">
             <ToggleSwitch checked={formData.isHighlight} />
             Mark as highlight
           </ToggleLabel>
           <input
+            id="highlight-toggle"
             type="checkbox"
             style={{ display: 'none' }}
             checked={formData.isHighlight}
