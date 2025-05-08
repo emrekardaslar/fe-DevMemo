@@ -466,6 +466,7 @@ interface ProcessedStandup extends Standup {
 const QueryPage: React.FC = () => {
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<QueryResult | null>(null);
+  const [rawResponse, setRawResponse] = useState<any>(null); // Store raw response for debugging
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [relatedStandups, setRelatedStandups] = useState<ProcessedStandup[]>([]);
@@ -576,6 +577,7 @@ const QueryPage: React.FC = () => {
     setLoading(true);
     setError(null);
     setResult(null);
+    setRawResponse(null);
     setRelatedStandups([]);
     setActiveTab('results');
     
@@ -584,28 +586,33 @@ const QueryPage: React.FC = () => {
     
     try {
       const response = await queryAPI.processQuery(query);
-      setResult(response.data);
+      console.log('Query API response:', response);
       
-      // If we have data but no explicit answer, create one
-      if (response.data.data && !response.data.answer) {
-        let generatedAnswer = '';
+      // Store the raw response for debugging
+      setRawResponse(response);
+      
+      // Extract the actual data from the nested response
+      const responseData = response.data;
+      
+      // Check if we have a success field in the response
+      if (responseData && responseData.success !== undefined) {
+        // This is the backend API response format where data is nested
+        console.log('Response contains success field, extracting nested data');
         
-        if (response.data.data.period) {
-          // Weekly summary
-          generatedAnswer = `Here's your summary for ${response.data.data.period}`;
-        } else if (response.data.data.month) {
-          // Monthly summary
-          generatedAnswer = `Here's your summary for ${response.data.data.month}`;
-        } else if (Array.isArray(response.data.data)) {
-          // Likely blockers or search results
-          generatedAnswer = `Found ${response.data.data.length} results for your query`;
-        }
+        const actualData = responseData.data;
+        const result = {
+          answer: `Here are the results for your query about "${query}"`,
+          data: actualData
+        };
         
-        setResult({
-          ...response.data,
-          answer: generatedAnswer
-        });
+        console.log('Setting result with extracted data:', result);
+        setResult(result);
+      } else {
+        // Direct response format
+        console.log('Setting result directly with:', responseData);
+        setResult(responseData);
       }
+      
     } catch (error) {
       setError('An error occurred processing your query. Please try again.');
       console.error('Query error:', error);
@@ -630,11 +637,15 @@ const QueryPage: React.FC = () => {
   
   // Extract tags from data for visualization
   const extractTags = () => {
+    console.log('Extracting tags from:', result?.data); // Debug log
+    
     if (!result || !result.data) return [];
     
     // For weekly summary
     if (result.data.period && result.data.tags) {
-      return result.data.tags.map((tag: string) => ({ tag, count: 1 }));
+      // Convert string array to tag objects with count
+      const tags = result.data.tags || [];
+      return tags.map((tag: string) => ({ tag, count: 1 }));
     }
     
     // For monthly summary
@@ -656,51 +667,77 @@ const QueryPage: React.FC = () => {
         .sort((a, b) => b.count - a.count);
     }
     
+    // If data has tags property that's an array of strings
+    if (result.data.tags && Array.isArray(result.data.tags)) {
+      const tagCount: Record<string, number> = {};
+      result.data.tags.forEach((tag: string) => {
+        tagCount[tag] = (tagCount[tag] || 0) + 1;
+      });
+      
+      return Object.entries(tagCount)
+        .map(([tag, count]) => ({ tag, count }))
+        .sort((a, b) => b.count - a.count);
+    }
+    
     return [];
   };
   
   // Render the summary data based on type
   const renderSummaryData = () => {
-    if (!result || !result.data) {
-      return null;
-    }
+    console.log('Rendering summary data with result:', result);
+    
+    // Direct data access - this handles when data is directly on result object (not nested)
+    const data = result?.data || {};
     
     // Weekly summary
-    if (result.data.period) {
+    if (data.period) {
+      const accomplishments = data.accomplishments || [];
+      const plans = data.plans || [];
+      const blockers = data.blockers || [];
+      const tags = data.tags || [];
+      
       return (
         <>
           <SummaryCard>
-            <SummaryHeader><FiCalendar /> Period: {result.data.period}</SummaryHeader>
-            <p>Total entries: {result.data.accomplishments.length}</p>
+            <SummaryHeader><FiCalendar /> Period: {data.period}</SummaryHeader>
+            <p>Total entries: {accomplishments.length}</p>
           </SummaryCard>
           
           <SummaryCard>
             <SummaryHeader><FiBarChart /> Accomplishments</SummaryHeader>
-            <ul>
-              {result.data.accomplishments.map((item: any, index: number) => (
-                <li key={index}>
-                  <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.done}
-                </li>
-              ))}
-            </ul>
+            {accomplishments.length > 0 ? (
+              <ul>
+                {accomplishments.map((item: any, index: number) => (
+                  <li key={index}>
+                    <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.done}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No accomplishments recorded for this period.</p>
+            )}
           </SummaryCard>
           
           <SummaryCard>
             <SummaryHeader><FiBarChart /> Plans</SummaryHeader>
-            <ul>
-              {result.data.plans.map((item: any, index: number) => (
-                <li key={index}>
-                  <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.plan}
-                </li>
-              ))}
-            </ul>
+            {plans.length > 0 ? (
+              <ul>
+                {plans.map((item: any, index: number) => (
+                  <li key={index}>
+                    <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.plan}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No plans recorded for this period.</p>
+            )}
           </SummaryCard>
           
-          {result.data.blockers.length > 0 && (
+          {blockers.length > 0 && (
             <SummaryCard>
               <SummaryHeader><FiAlertCircle /> Blockers</SummaryHeader>
               <ul>
-                {result.data.blockers.map((item: any, index: number) => (
+                {blockers.map((item: any, index: number) => (
                   <li key={index}>
                     <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.blocker}
                   </li>
@@ -709,11 +746,11 @@ const QueryPage: React.FC = () => {
             </SummaryCard>
           )}
           
-          {result.data.tags.length > 0 && (
+          {tags.length > 0 && (
             <SummaryCard>
               <SummaryHeader><FiTag /> Tags</SummaryHeader>
               <StandupTags>
-                {result.data.tags.map((tag: string, index: number) => (
+                {tags.map((tag: string, index: number) => (
                   <StandupTag key={index}><FiTag /> {tag}</StandupTag>
                 ))}
               </StandupTags>
@@ -723,13 +760,13 @@ const QueryPage: React.FC = () => {
           <DataVisualization>
             <VisualizationTitle><FiBarChart /> Tag Distribution</VisualizationTitle>
             <TagCloud>
-              {extractTags().map((tag: any, index: number) => (
+              {tags.map((tag: string, index: number) => (
                 <TagCloudItem 
                   key={index}
-                  size={tag.count}
-                  onClick={() => handleSuggestedQuery(`Show me standups tagged with ${tag.tag}`)}
+                  size={1}
+                  onClick={() => handleSuggestedQuery(`Show me standups tagged with ${tag}`)}
                 >
-                  {tag.tag}
+                  {tag}
                 </TagCloudItem>
               ))}
             </TagCloud>
@@ -739,19 +776,19 @@ const QueryPage: React.FC = () => {
     }
     
     // Monthly summary
-    if (result.data.month) {
+    if (data.month) {
       return (
         <>
           <SummaryCard>
-            <SummaryHeader><FiCalendar /> Month: {result.data.month}</SummaryHeader>
-            <p>Total entries: {result.data.totalEntries}</p>
+            <SummaryHeader><FiCalendar /> Month: {data.month}</SummaryHeader>
+            <p>Total entries: {data.totalEntries}</p>
           </SummaryCard>
           
-          {result.data.topTags.length > 0 && (
+          {data.topTags.length > 0 && (
             <SummaryCard>
               <SummaryHeader><FiTag /> Top Tags</SummaryHeader>
               <TagCloud>
-                {result.data.topTags.map((tag: any, index: number) => (
+                {data.topTags.map((tag: any, index: number) => (
                   <TagCloudItem 
                     key={index}
                     size={tag.count}
@@ -764,7 +801,7 @@ const QueryPage: React.FC = () => {
             </SummaryCard>
           )}
           
-          {result.data.weeklySummaries.map((week: any, weekIndex: number) => (
+          {data.weeklySummaries.map((week: any, weekIndex: number) => (
             <SummaryCard key={weekIndex}>
               <SummaryHeader><FiCalendar /> {week.week}</SummaryHeader>
               <h4>Accomplishments:</h4>
@@ -789,10 +826,10 @@ const QueryPage: React.FC = () => {
     }
     
     // Blockers
-    if (Array.isArray(result.data) && result.data.length > 0 && result.data[0].blocker) {
+    if (Array.isArray(data) && data.length > 0 && data[0].blocker) {
       return (
         <>
-          {result.data.map((blocker: any, index: number) => (
+          {data.map((blocker: any, index: number) => (
             <SummaryCard key={index}>
               <SummaryHeader><FiAlertCircle /> {blocker.blocker}</SummaryHeader>
               <p>Occurrences: {blocker.occurrences}</p>
@@ -812,10 +849,24 @@ const QueryPage: React.FC = () => {
       );
     }
     
+    // Generic JSON data fallback - display any other data format
     return (
-      <NoResultsMessage>
-        No detailed summary available for this query.
-      </NoResultsMessage>
+      <>
+        <SummaryCard>
+          <SummaryHeader><FiInfo /> Query Results</SummaryHeader>
+          <p>Here are the results for your query:</p>
+          
+          <pre style={{ 
+            background: 'rgba(0,0,0,0.05)', 
+            padding: '1rem', 
+            borderRadius: '4px',
+            overflow: 'auto',
+            maxHeight: '400px'
+          }}>
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        </SummaryCard>
+      </>
     );
   };
   
@@ -903,6 +954,24 @@ const QueryPage: React.FC = () => {
         )}
       </QueryContainer>
       
+      {/* Debug display for development - can be removed in production */}
+      {rawResponse && (
+        <div style={{ 
+          margin: '1rem 0', 
+          padding: '1rem', 
+          background: '#f8f9fa', 
+          border: '1px solid #dee2e6',
+          borderRadius: '4px'
+        }}>
+          <details>
+            <summary style={{ fontWeight: 'bold', cursor: 'pointer' }}>Debug: Raw Response</summary>
+            <pre style={{ marginTop: '1rem', overflow: 'auto' }}>
+              {JSON.stringify(rawResponse, null, 2)}
+            </pre>
+          </details>
+        </div>
+      )}
+      
       {loading && (
         <LoadingMessage>
           <LoadingSpinner />
@@ -918,120 +987,91 @@ const QueryPage: React.FC = () => {
       )}
       
       {!loading && !error && result && (
-        <>
-          <ResultsContainer>
-            <ResultsHeader>
-              <ResultsTitle>Results</ResultsTitle>
-              <QueryText>"{query}"</QueryText>
-            </ResultsHeader>
-            
-            {result.message && (
-              <ResultsContent>
-                <p>{result.message}</p>
-                
-                {result.examples && (
-                  <>
-                    <h3>Try these examples:</h3>
-                    <ul>
-                      {result.examples.map((example, index) => (
-                        <li key={index}>
-                          <SuggestedQueryButton onClick={() => handleSuggestedQuery(example)}>
-                            <FiChevronRight /> {example}
-                          </SuggestedQueryButton>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-              </ResultsContent>
-            )}
-            
-            {result.answer && (
-              <AnswerContainer>
-                {result.answer}
-              </AnswerContainer>
-            )}
-            
-            {(result.data || relatedStandups.length > 0) && (
-              <TabsContainer>
-                <Tab 
-                  active={activeTab === 'results'} 
-                  onClick={() => setActiveTab('results')}
-                >
-                  <FiInfo /> Results
-                </Tab>
-                {result.data && (
-                  <Tab 
-                    active={activeTab === 'details'} 
-                    onClick={() => setActiveTab('details')}
-                  >
-                    <FiBarChart /> Details
-                  </Tab>
-                )}
-                {relatedStandups.length > 0 && (
-                  <Tab 
-                    active={activeTab === 'standups'} 
-                    onClick={() => setActiveTab('standups')}
-                  >
-                    <FiCalendar /> Standups ({relatedStandups.length})
-                  </Tab>
-                )}
-              </TabsContainer>
-            )}
-            
-            {activeTab === 'details' && result.data && renderSummaryData()}
-          </ResultsContainer>
+        <ResultsContainer>
+          <ResultsHeader>
+            <ResultsTitle>Results</ResultsTitle>
+            <QueryText>"{query}"</QueryText>
+          </ResultsHeader>
           
-          {activeTab === 'standups' && relatedStandups.length > 0 && (
-            <StandupsList>
-              {relatedStandups.map(standup => (
-                <StandupItem key={standup.date}>
-                  <StandupDate>
-                    {standup.formattedDate}
-                    {standup.isHighlight && (
-                      <StandupHighlight>
-                        <FiInfo /> Highlight
-                      </StandupHighlight>
-                    )}
-                  </StandupDate>
-                  
-                  <StandupContent>
-                    <StandupField>
-                      <h4>Yesterday:</h4>
-                      <p>{standup.yesterday}</p>
-                    </StandupField>
-                    
-                    <StandupField>
-                      <h4>Today:</h4>
-                      <p>{standup.today}</p>
-                    </StandupField>
-                    
-                    {standup.blockers && (
-                      <StandupField>
-                        <h4>Blockers:</h4>
-                        <p>{standup.blockers}</p>
-                      </StandupField>
-                    )}
-                  </StandupContent>
-                  
-                  {standup.tags.length > 0 && (
-                    <StandupTags>
-                      {standup.tags.map((tag, index) => (
-                        <StandupTag key={index}>
-                          <FiTag /> {tag}
-                        </StandupTag>
-                      ))}
-                    </StandupTags>
-                  )}
-                  
-                  <StandupLink to={`/standups/${standup.date}`}>
-                    <FiChevronRight /> View full standup
-                  </StandupLink>
-                </StandupItem>
-              ))}
-            </StandupsList>
+          {result.message && (
+            <ResultsContent>
+              <p>{result.message}</p>
+              
+              {result.examples && (
+                <>
+                  <h3>Try these examples:</h3>
+                  <ul>
+                    {result.examples.map((example, index) => (
+                      <li key={index}>
+                        <SuggestedQueryButton onClick={() => handleSuggestedQuery(example)}>
+                          <FiChevronRight /> {example}
+                        </SuggestedQueryButton>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </ResultsContent>
           )}
-        </>
+          
+          {result.answer && (
+            <AnswerContainer>
+              {result.answer}
+            </AnswerContainer>
+          )}
+          
+          {result.data && renderSummaryData()}
+        </ResultsContainer>
+      )}
+      
+      {!loading && !error && relatedStandups.length > 0 && (
+        <StandupsList>
+          {relatedStandups.map(standup => (
+            <StandupItem key={standup.date}>
+              <StandupDate>
+                {standup.formattedDate}
+                {standup.isHighlight && (
+                  <StandupHighlight>
+                    <FiInfo /> Highlight
+                  </StandupHighlight>
+                )}
+              </StandupDate>
+              
+              <StandupContent>
+                <StandupField>
+                  <h4>Yesterday:</h4>
+                  <p>{standup.yesterday}</p>
+                </StandupField>
+                
+                <StandupField>
+                  <h4>Today:</h4>
+                  <p>{standup.today}</p>
+                </StandupField>
+                
+                {standup.blockers && (
+                  <StandupField>
+                    <h4>Blockers:</h4>
+                    <p>{standup.blockers}</p>
+                  </StandupField>
+                )}
+              </StandupContent>
+              
+              {standup.tags.length > 0 && (
+                <StandupTags>
+                  {standup.tags.map((tag, index) => (
+                    <StandupTag key={index}>
+                      <FiTag /> {tag}
+                    </StandupTag>
+                  ))}
+                </StandupTags>
+              )}
+              
+              <StandupLink to={`/standups/${standup.date}`}>
+                <FiChevronRight /> View full standup
+              </StandupLink>
+            </StandupItem>
+          ))}
+        </StandupsList>
       )}
     </PageContainer>
   );

@@ -191,9 +191,18 @@ export const queryAPI = {
   // Process natural language query
   processQuery: async (query: string) => {
     try {
+      console.log('Sending query to API:', query);
       const response = await api.post('/query', { query });
-      return response.data;
+      console.log('Raw API response:', response);
+      
+      // Make sure we return the full response for debugging
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data
+      };
     } catch (error) {
+      console.error('Error in processQuery:', error);
       return handleApiError(error);
     }
   }
