@@ -9,13 +9,13 @@ interface StandupCardProps {
   onDelete: (date: string) => void;
 }
 
-const Card = styled.div<{ isHighlight: boolean }>`
-  background-color: ${(props) => props.isHighlight ? 'var(--highlight-color)' : 'var(--card-background)'};
+const Card = styled.div<{ $isHighlight: boolean }>`
+  background-color: ${(props) => props.$isHighlight ? 'var(--highlight-color)' : 'var(--card-background)'};
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
-  border-left: ${(props) => props.isHighlight ? '4px solid var(--warning-color)' : 'none'};
+  border-left: ${(props) => props.$isHighlight ? '4px solid var(--warning-color)' : 'none'};
 `;
 
 const CardHeader = styled.div`
@@ -148,7 +148,7 @@ const getProductivityEmoji = (productivity: number): string => {
 
 const StandupCard: React.FC<StandupCardProps> = ({ standup, onToggleHighlight, onDelete }) => {
   return (
-    <Card isHighlight={standup.isHighlight}>
+    <Card $isHighlight={standup.isHighlight}>
       <CardHeader>
         <DateLink to={`/standups/${standup.date}`}>
           {formatDate(standup.date)}
