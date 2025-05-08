@@ -9,6 +9,7 @@ import StandupDetail from './pages/StandupDetail';
 import Search from './pages/Search';
 import QueryPage from './pages/QueryPage';
 import StandupList from './pages/StandupList';
+import TagsPage from './pages/TagsPage';
 
 const AppContainer = styled.div`
   display: flex;
@@ -42,6 +43,7 @@ const App: React.FC = () => {
             <Route path="/standups/:date/edit" element={<StandupForm />} />
             <Route path="/search" element={<Search />} />
             <Route path="/query" element={<QueryPage />} />
+            <Route path="/tags" element={<TagsPage />} />
           </Routes>
         </ContentContainer>
       </MainContainer>

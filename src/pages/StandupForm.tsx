@@ -6,6 +6,7 @@ import { fetchStandup, createStandup, updateStandup, clearStandup, resetSuccess,
 import { RootState } from '../redux/store';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { Standup, CreateStandupDto, UpdateStandupDto } from '../redux/standups/types';
+import TagSelector from '../components/standups/TagSelector';
 
 const FormContainer = styled.div`
   max-width: 800px;
@@ -336,7 +337,6 @@ const StandupForm: React.FC = () => {
     isHighlight: false
   });
   
-  const [tagInput, setTagInput] = useState('');
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [showOverwriteWarning, setShowOverwriteWarning] = useState(false);
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
@@ -410,26 +410,11 @@ const StandupForm: React.FC = () => {
     }
   };
   
-  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && tagInput.trim()) {
-      e.preventDefault();
-      const newTag = tagInput.trim().toLowerCase();
-      
-      if (!formData.tags.includes(newTag)) {
-        setFormData(prev => ({
-          ...prev,
-          tags: [...prev.tags, newTag]
-        }));
-      }
-      
-      setTagInput('');
-    }
-  };
-  
-  const handleRemoveTag = (tagToRemove: string) => {
+  // Update handler for TagSelector
+  const handleTagsChange = (newTags: string[]) => {
     setFormData(prev => ({
       ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
+      tags: newTags
     }));
   };
   
@@ -619,22 +604,11 @@ const StandupForm: React.FC = () => {
         </FormGroup>
         
         <FormGroup>
-          <Label htmlFor="tagInput">Tags</Label>
-          <TagsContainer>
-            {formData.tags.map(tag => (
-              <Tag key={tag}>
-                {tag}
-                <TagDeleteButton type="button" onClick={() => handleRemoveTag(tag)}>×</TagDeleteButton>
-              </Tag>
-            ))}
-            <TagInput
-              id="tagInput"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={handleTagInputKeyDown}
-              placeholder="Add tags (press Enter)"
-            />
-          </TagsContainer>
+          <Label htmlFor="tags">Tags</Label>
+          <TagSelector 
+            selectedTags={formData.tags} 
+            onTagsChange={handleTagsChange} 
+          />
         </FormGroup>
         
         <RatingContainer>

@@ -66,6 +66,12 @@ const Sidebar: React.FC = () => {
           </StyledNavLink>
         </NavItem>
         <NavItem>
+          <StyledNavLink to="/tags">
+            <NavIcon>🏷️</NavIcon>
+            Tags
+          </StyledNavLink>
+        </NavItem>
+        <NavItem>
           <StyledNavLink to="/search">
             <NavIcon>🔍</NavIcon>
             Search
