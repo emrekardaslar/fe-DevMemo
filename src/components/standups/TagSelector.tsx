@@ -113,6 +113,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({ selectedTags, onTagsChange })
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLUListElement>(null);
+  const [mouseDownOnSuggestion, setMouseDownOnSuggestion] = useState(false);
   
   // Get all standups to extract tags
   const { standups } = useSelector((state: RootState) => state.standups);
@@ -243,18 +244,43 @@ const TagSelector: React.FC<TagSelectorProps> = ({ selectedTags, onTagsChange })
     }
   };
   
+  // Track mouse down on suggestion item
+  const handleSuggestionMouseDown = (e: React.MouseEvent) => {
+    // Prevent input blur until after click is processed
+    e.preventDefault();
+    setMouseDownOnSuggestion(true);
+  };
+  
+  // Reset mouse down state
+  useEffect(() => {
+    const handleMouseUp = () => {
+      setMouseDownOnSuggestion(false);
+    };
+    
+    // Add global mouseup listener
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+  
   const handleBlur = (e: React.FocusEvent) => {
-    // Check if the related target is within our component
-    if (
-      !e.currentTarget.contains(e.relatedTarget as Node) && 
-      !suggestionsRef.current?.contains(e.relatedTarget as Node)
-    ) {
-      setShowSuggestions(false);
+    // If mouse is down on a suggestion, don't hide suggestions yet
+    if (mouseDownOnSuggestion) {
+      return;
     }
+    
+    // Short delay to allow click events to be processed
+    setTimeout(() => {
+      if (!mouseDownOnSuggestion && !inputRef.current?.contains(document.activeElement)) {
+        setShowSuggestions(false);
+      }
+    }, 150);
   };
   
   return (
-    <TagSelectorContainer onBlur={handleBlur}>
+    <TagSelectorContainer>
       <TagInputContainer>
         {selectedTags.map(tag => (
           <Tag key={tag}>
@@ -274,6 +300,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({ selectedTags, onTagsChange })
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
+          onBlur={handleBlur}
           placeholder={selectedTags.length === 0 ? "Add tags (press Enter)" : ""}
           autoComplete="off"
         />
@@ -287,6 +314,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({ selectedTags, onTagsChange })
                 key={tag}
                 isActive={index === activeSuggestionIndex}
                 onClick={() => handleSelectSuggestion(tag)}
+                onMouseDown={handleSuggestionMouseDown}
                 onMouseEnter={() => setActiveSuggestionIndex(index)}
               >
                 {tag}
