@@ -1,5 +1,5 @@
-import axios from 'axios';
-import { Standup } from '../redux/standups/types';
+import axios, { AxiosError } from 'axios';
+import { Standup, CreateStandupDto, UpdateStandupDto } from '../redux/standups/types';
 
 const API_URL = 'http://localhost:4000/api';
 
@@ -11,66 +11,148 @@ const api = axios.create({
   }
 });
 
+// Type for API error response
+interface ApiErrorResponse {
+  message?: string;
+  error?: string;
+  [key: string]: any;
+}
+
+// Helper function to handle API errors
+const handleApiError = (error: unknown) => {
+  if (axios.isAxiosError(error)) {
+    const axiosError = error as AxiosError<ApiErrorResponse>;
+    
+    // If we have a response with error data
+    if (axiosError.response?.data) {
+      console.error('API Error:', axiosError.response.data);
+      const responseData = axiosError.response.data;
+      
+      if (typeof responseData === 'string') {
+        throw new Error(responseData);
+      } else if (responseData.message) {
+        throw new Error(responseData.message);
+      } else if (responseData.error) {
+        throw new Error(responseData.error);
+      } else {
+        throw new Error(`Error ${axiosError.response.status}: ${axiosError.response.statusText}`);
+      }
+    }
+    
+    // If we have a request error but no response (network error)
+    if (axiosError.request) {
+      console.error('Network Error:', axiosError.message);
+      throw new Error('Network error. Please check your connection and try again.');
+    }
+  }
+  
+  // Fallback for non-Axios errors
+  console.error('Unexpected error:', error);
+  throw new Error('An unexpected error occurred');
+};
+
 // Standup API calls
 export const standupAPI = {
   // Get all standups
   getAll: async (params = {}) => {
-    const response = await api.get('/standups', { params });
-    return response.data;
+    try {
+      const response = await api.get('/standups', { params });
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
   },
   
   // Get standup by date
   getByDate: async (date: string) => {
-    const response = await api.get(`/standups/${date}`);
-    return response.data;
+    try {
+      const response = await api.get(`/standups/${date}`);
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
   },
   
   // Get standups by date range
   getByDateRange: async (startDate: string, endDate: string) => {
-    const response = await api.get('/standups/range', { params: { startDate, endDate } });
-    return response.data;
+    try {
+      const response = await api.get('/standups/range', { params: { startDate, endDate } });
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
   },
   
   // Get highlight standups
   getHighlights: async () => {
-    const response = await api.get('/standups/highlights');
-    return response.data;
+    try {
+      const response = await api.get('/standups/highlights');
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
   },
   
   // Create new standup
-  create: async (standup: Omit<Standup, 'createdAt' | 'updatedAt'>) => {
-    const response = await api.post('/standups', standup);
-    return response.data;
+  create: async (standup: CreateStandupDto) => {
+    try {
+      console.log('API: Creating standup with data:', standup);
+      const response = await api.post('/standups', standup);
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
   },
   
   // Update standup
-  update: async (date: string, standup: Partial<Standup>) => {
-    const response = await api.put(`/standups/${date}`, standup);
-    return response.data;
+  update: async (date: string, standup: UpdateStandupDto) => {
+    try {
+      console.log('API: Updating standup with data:', standup);
+      const response = await api.put(`/standups/${date}`, standup);
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
   },
   
   // Delete standup
   delete: async (date: string) => {
-    const response = await api.delete(`/standups/${date}`);
-    return response.data;
+    try {
+      const response = await api.delete(`/standups/${date}`);
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
   },
   
   // Toggle highlight status
   toggleHighlight: async (date: string) => {
-    const response = await api.patch(`/standups/${date}/highlight`);
-    return response.data;
+    try {
+      const response = await api.patch(`/standups/${date}/highlight`);
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
   },
   
   // Search standups
   search: async (keyword: string) => {
-    const response = await api.get('/standups/search', { params: { keyword } });
-    return response.data;
+    try {
+      const response = await api.get('/standups/search', { params: { keyword } });
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
   },
   
   // Get statistics
   getStats: async () => {
-    const response = await api.get('/standups/stats');
-    return response.data;
+    try {
+      const response = await api.get('/standups/stats');
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
 };
 
@@ -78,26 +160,42 @@ export const standupAPI = {
 export const queryAPI = {
   // Get weekly summary
   getWeeklySummary: async () => {
-    const response = await api.get('/query/week');
-    return response.data;
+    try {
+      const response = await api.get('/query/week');
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
   },
   
   // Get monthly summary
   getMonthlySummary: async (month: string) => {
-    const response = await api.get(`/query/month/${month}`);
-    return response.data;
+    try {
+      const response = await api.get(`/query/month/${month}`);
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
   },
   
   // Get blockers
   getBlockers: async () => {
-    const response = await api.get('/query/blockers');
-    return response.data;
+    try {
+      const response = await api.get('/query/blockers');
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
   },
   
   // Process natural language query
   processQuery: async (query: string) => {
-    const response = await api.post('/query', { query });
-    return response.data;
+    try {
+      const response = await api.post('/query', { query });
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
   }
 };
 

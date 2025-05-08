@@ -1,5 +1,5 @@
 import { ThunkAction } from 'redux-thunk';
-import { StandupActionTypes, StandupAction, Standup } from './types';
+import { StandupActionTypes, StandupAction, Standup, CreateStandupDto, UpdateStandupDto } from './types';
 import { RootState } from '../store';
 import { standupAPI } from '../../services/api';
 
@@ -41,7 +41,7 @@ export const fetchStandup = (date: string): ThunkAction<void, RootState, unknown
 };
 
 export const createStandup = (
-  standup: Omit<Standup, 'createdAt' | 'updatedAt'>
+  standup: CreateStandupDto
 ): ThunkAction<void, RootState, unknown, StandupAction> => {
   return async (dispatch) => {
     try {
@@ -62,7 +62,7 @@ export const createStandup = (
 
 export const updateStandup = (
   date: string,
-  standup: Partial<Standup>
+  standup: UpdateStandupDto
 ): ThunkAction<void, RootState, unknown, StandupAction> => {
   return async (dispatch) => {
     try {

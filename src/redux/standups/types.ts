@@ -12,6 +12,15 @@ export interface Standup {
   updatedAt: string;
 }
 
+// Type for creating a new standup
+export type CreateStandupDto = Omit<Standup, 'createdAt' | 'updatedAt'> & {
+  mood?: number;
+  productivity?: number;
+};
+
+// Type for updating an existing standup
+export type UpdateStandupDto = Partial<Standup>;
+
 // State
 export interface StandupState {
   standups: Standup[];

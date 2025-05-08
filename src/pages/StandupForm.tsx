@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import styled from 'styled-components';
-import { fetchStandup, createStandup, updateStandup, clearStandup, resetSuccess } from '../redux/standups/actions';
+import { fetchStandup, createStandup, updateStandup, clearStandup, resetSuccess, fetchStandups } from '../redux/standups/actions';
 import { RootState } from '../redux/store';
 import { useAppDispatch } from '../hooks/useAppDispatch';
-import { Standup } from '../redux/standups/types';
+import { Standup, CreateStandupDto, UpdateStandupDto } from '../redux/standups/types';
 
 const FormContainer = styled.div`
   max-width: 800px;
@@ -240,69 +240,180 @@ const ToggleSwitch = styled.div<{ checked: boolean }>`
   }
 `;
 
+const WarningMessage = styled.div`
+  color: var(--warning-color);
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: rgba(241, 196, 15, 0.1);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+`;
+
+const WarningIcon = styled.span`
+  margin-right: 0.5rem;
+  font-size: 1.2rem;
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+`;
+
+const ModalContent = styled.div`
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+`;
+
+const ModalTitle = styled.h2`
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: var(--error-color);
+`;
+
+const ModalText = styled.p`
+  margin-bottom: 1.5rem;
+`;
+
+const ModalButtons = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+`;
+
+const CancelModalButton = styled.button`
+  background-color: var(--card-background);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: #f5f5f5;
+  }
+`;
+
+const ConfirmModalButton = styled.button`
+  background-color: var(--error-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: #c0392b;
+  }
+`;
+
 const StandupForm: React.FC = () => {
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { currentStandup, loading, error, success } = useSelector((state: RootState) => state.standups);
+  const { currentStandup, standups, loading, error, success } = useSelector((state: RootState) => state.standups);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CreateStandupDto>({
     date: new Date().toISOString().split('T')[0], // Default to today
     yesterday: '',
     today: '',
     blockers: '',
-    tags: [] as string[],
+    tags: [],
     mood: 0,
     productivity: 0,
     isHighlight: false
   });
+  
   const [tagInput, setTagInput] = useState('');
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [showOverwriteWarning, setShowOverwriteWarning] = useState(false);
+  const [showOverwriteModal, setShowOverwriteModal] = useState(false);
+  const isEditMode = Boolean(date);
   
-  const isEditing = !!date;
-  
+  // Fetch all standups for existing date check
   useEffect(() => {
-    if (isEditing) {
+    if (!isEditMode) {
+      dispatch(fetchStandups());
+    }
+  }, [dispatch, isEditMode]);
+  
+  // Fetch standup data when in edit mode
+  useEffect(() => {
+    if (isEditMode && date) {
       dispatch(fetchStandup(date));
     } else {
       dispatch(clearStandup());
     }
     
     return () => {
+      dispatch(clearStandup());
       dispatch(resetSuccess());
     };
-  }, [dispatch, date, isEditing]);
+  }, [dispatch, isEditMode, date]);
   
+  // Update form data when currentStandup changes
   useEffect(() => {
-    if (currentStandup && isEditing) {
+    if (currentStandup && isEditMode) {
       setFormData({
         date: currentStandup.date,
         yesterday: currentStandup.yesterday,
         today: currentStandup.today,
         blockers: currentStandup.blockers,
-        tags: [...currentStandup.tags],
+        tags: currentStandup.tags || [],
         mood: currentStandup.mood,
         productivity: currentStandup.productivity,
         isHighlight: currentStandup.isHighlight
       });
     }
-  }, [currentStandup, isEditing]);
+  }, [currentStandup, isEditMode]);
   
+  // Redirect on success
   useEffect(() => {
     if (success) {
-      navigate('/standups');
+      if (isEditMode) {
+        navigate(`/standups/${formData.date}`);
+      } else {
+        navigate('/standups');
+      }
+      dispatch(resetSuccess());
     }
-  }, [success, navigate]);
+  }, [success, navigate, dispatch, isEditMode, formData.date]);
+  
+  // Check if standup already exists for selected date
+  useEffect(() => {
+    if (!isEditMode && standups.length > 0) {
+      const existingStandup = standups.find(s => s.date === formData.date);
+      setShowOverwriteWarning(!!existingStandup);
+    } else {
+      setShowOverwriteWarning(false);
+    }
+  }, [formData.date, standups, isEditMode]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear validation error when field is changed
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({ ...prev, [name]: '' }));
+    }
   };
   
   const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && tagInput.trim()) {
       e.preventDefault();
-      const newTag = tagInput.trim().replace(/\s+/g, '_');
+      const newTag = tagInput.trim().toLowerCase();
       
       if (!formData.tags.includes(newTag)) {
         setFormData(prev => ({
@@ -337,47 +448,119 @@ const StandupForm: React.FC = () => {
   };
   
   const validateForm = (): boolean => {
-    const errors: string[] = [];
+    const errors: Record<string, string> = {};
     
     if (!formData.date) {
-      errors.push('Date is required');
+      errors.date = 'Date is required';
     }
     
     if (!formData.yesterday.trim()) {
-      errors.push('Yesterday field is required');
+      errors.yesterday = 'Please enter what you did yesterday';
     }
     
     if (!formData.today.trim()) {
-      errors.push('Today field is required');
+      errors.today = 'Please enter what you plan to do today';
+    }
+    
+    // Add validation for mood and productivity based on backend requirements
+    if (formData.mood !== 0 && (formData.mood < 1 || formData.mood > 5)) {
+      errors.mood = 'Mood rating must be between 1 and 5';
+    }
+    
+    if (formData.productivity !== 0 && (formData.productivity < 1 || formData.productivity > 5)) {
+      errors.productivity = 'Productivity rating must be between 1 and 5';
     }
     
     setValidationErrors(errors);
-    return errors.length === 0;
+    return Object.keys(errors).length === 0;
   };
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    console.log('Form data before validation:', formData);
+    
+    // Check if we need to show the overwrite confirmation
+    if (!isEditMode && showOverwriteWarning) {
+      setShowOverwriteModal(true);
       return;
     }
     
-    const standupData = {
+    submitForm();
+  };
+  
+  const submitForm = () => {
+    // Prepare submission data
+    const submissionData: CreateStandupDto | UpdateStandupDto = {
       ...formData
     };
     
-    if (isEditing) {
-      dispatch(updateStandup(date, standupData));
+    // If mood or productivity is 0 (not rated), don't send it to the backend
+    if (formData.mood === 0) {
+      delete submissionData.mood;
+    }
+    
+    if (formData.productivity === 0) {
+      delete submissionData.productivity;
+    }
+    
+    if (!validateForm()) {
+      console.log('Validation failed, errors:', validationErrors);
+      return;
+    }
+    
+    if (isEditMode && date) {
+      console.log('Updating standup:', submissionData);
+      dispatch(updateStandup(date, submissionData as UpdateStandupDto));
     } else {
-      dispatch(createStandup(standupData));
+      console.log('Creating standup:', submissionData);
+      dispatch(createStandup(submissionData as CreateStandupDto));
+    }
+    
+    // Close the modal if it was open
+    setShowOverwriteModal(false);
+  };
+  
+  const handleCancel = () => {
+    if (isEditMode && date) {
+      navigate(`/standups/${date}`);
+    } else {
+      navigate('/standups');
     }
   };
   
+  // Helper to render rating options
+  const renderRatingOptions = (type: 'mood' | 'productivity', maxValue: number = 5) => {
+    // Add an option for "Not rated" (value 0)
+    return (
+      <>
+        <RatingOption 
+          key={0}
+          type="button"
+          selected={formData[type] === 0}
+          onClick={() => handleSetRating(type, 0)}
+        >
+          N/A
+        </RatingOption>
+        {Array.from({ length: maxValue }, (_, i) => i + 1).map(value => (
+          <RatingOption 
+            key={value}
+            type="button"
+            selected={formData[type] === value}
+            onClick={() => handleSetRating(type, value)}
+          >
+            {value}
+          </RatingOption>
+        ))}
+      </>
+    );
+  };
+
   return (
     <FormContainer>
       <PageHeader>
-        <Title>{isEditing ? 'Edit Standup' : 'New Standup'}</Title>
-        <Subtitle>{isEditing ? `Editing entry for ${date}` : 'Create a new standup entry'}</Subtitle>
+        <Title>{isEditMode ? 'Edit Standup' : 'New Standup'}</Title>
+        <Subtitle>{isEditMode ? 'Update your standup entry' : 'Create a new standup entry'}</Subtitle>
       </PageHeader>
       
       <Form onSubmit={handleSubmit}>
@@ -389,19 +572,27 @@ const StandupForm: React.FC = () => {
             name="date"
             value={formData.date}
             onChange={handleChange}
-            disabled={isEditing}
+            disabled={isEditMode}
           />
+          {validationErrors.date && <ErrorMessage>{validationErrors.date}</ErrorMessage>}
+          {showOverwriteWarning && !isEditMode && (
+            <WarningMessage>
+              <WarningIcon>⚠️</WarningIcon>
+              A standup entry already exists for this date. Creating a new one will overwrite it.
+            </WarningMessage>
+          )}
         </FormGroup>
         
         <FormGroup>
-          <Label htmlFor="yesterday">What did you do yesterday?</Label>
+          <Label htmlFor="yesterday">What did you accomplish yesterday?</Label>
           <Textarea
             id="yesterday"
             name="yesterday"
             value={formData.yesterday}
             onChange={handleChange}
-            placeholder="I worked on..."
+            placeholder="* Fixed bug in authentication flow&#10;* Implemented new dashboard UI&#10;* Reviewed PR from team"
           />
+          {validationErrors.yesterday && <ErrorMessage>{validationErrors.yesterday}</ErrorMessage>}
         </FormGroup>
         
         <FormGroup>
@@ -411,100 +602,103 @@ const StandupForm: React.FC = () => {
             name="today"
             value={formData.today}
             onChange={handleChange}
-            placeholder="Today I will..."
+            placeholder="* Complete the API integration&#10;* Start working on the analytics feature&#10;* Prepare for the demo"
           />
+          {validationErrors.today && <ErrorMessage>{validationErrors.today}</ErrorMessage>}
         </FormGroup>
         
         <FormGroup>
-          <Label htmlFor="blockers">Any blockers?</Label>
+          <Label htmlFor="blockers">Any blockers or challenges?</Label>
           <Textarea
             id="blockers"
             name="blockers"
             value={formData.blockers}
             onChange={handleChange}
-            placeholder="I'm blocked by..."
+            placeholder="* Waiting for access to the staging environment&#10;* Need clarification on design specs"
           />
         </FormGroup>
         
         <FormGroup>
-          <Label htmlFor="tags">Tags</Label>
-          <TagInput
-            type="text"
-            id="tagInput"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={handleTagInputKeyDown}
-            placeholder="Add tag and press Enter"
-          />
+          <Label htmlFor="tagInput">Tags</Label>
           <TagsContainer>
-            {formData.tags.map((tag, index) => (
-              <Tag key={index}>
-                #{tag}
-                <TagDeleteButton onClick={() => handleRemoveTag(tag)} type="button">
-                  ×
-                </TagDeleteButton>
+            {formData.tags.map(tag => (
+              <Tag key={tag}>
+                {tag}
+                <TagDeleteButton type="button" onClick={() => handleRemoveTag(tag)}>×</TagDeleteButton>
               </Tag>
             ))}
+            <TagInput
+              id="tagInput"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleTagInputKeyDown}
+              placeholder="Add tags (press Enter)"
+            />
           </TagsContainer>
         </FormGroup>
         
         <RatingContainer>
-          <RatingLabel>How was your mood?</RatingLabel>
+          <RatingLabel>How was your mood today?</RatingLabel>
           <RatingOptions>
-            {[1, 2, 3, 4, 5].map((value) => (
-              <RatingOption
-                key={value}
-                type="button"
-                selected={formData.mood === value}
-                onClick={() => handleSetRating('mood', value)}
-              >
-                {value}
-              </RatingOption>
-            ))}
+            {renderRatingOptions('mood')}
           </RatingOptions>
+          {validationErrors.mood && <ErrorMessage>{validationErrors.mood}</ErrorMessage>}
         </RatingContainer>
         
         <RatingContainer>
-          <RatingLabel>Rate your productivity</RatingLabel>
+          <RatingLabel>How productive were you?</RatingLabel>
           <RatingOptions>
-            {[1, 2, 3, 4, 5].map((value) => (
-              <RatingOption
-                key={value}
-                type="button"
-                selected={formData.productivity === value}
-                onClick={() => handleSetRating('productivity', value)}
-              >
-                {value}
-              </RatingOption>
-            ))}
+            {renderRatingOptions('productivity')}
           </RatingOptions>
+          {validationErrors.productivity && <ErrorMessage>{validationErrors.productivity}</ErrorMessage>}
         </RatingContainer>
         
         <ToggleContainer>
           <ToggleLabel>
-            <ToggleSwitch checked={formData.isHighlight} onClick={handleToggleHighlight} />
+            <ToggleSwitch checked={formData.isHighlight} />
             Mark as highlight
           </ToggleLabel>
+          <input
+            type="checkbox"
+            style={{ display: 'none' }}
+            checked={formData.isHighlight}
+            onChange={handleToggleHighlight}
+          />
         </ToggleContainer>
         
-        {(validationErrors.length > 0 || error) && (
-          <ErrorMessage>
-            {validationErrors.map((err, index) => (
-              <div key={index}>{err}</div>
-            ))}
-            {error && <div>{error}</div>}
-          </ErrorMessage>
-        )}
+        {error && <ErrorMessage>{error}</ErrorMessage>}
         
         <ButtonContainer>
-          <CancelButton type="button" onClick={() => navigate('/standups')}>
+          <CancelButton type="button" onClick={handleCancel}>
             Cancel
           </CancelButton>
           <SubmitButton type="submit" disabled={loading}>
-            {loading ? 'Saving...' : isEditing ? 'Update Standup' : 'Create Standup'}
+            {loading ? 'Saving...' : (isEditMode ? 'Update Standup' : 'Create Standup')}
           </SubmitButton>
         </ButtonContainer>
       </Form>
+      
+      {/* Overwrite Confirmation Modal */}
+      {showOverwriteModal && (
+        <ModalOverlay>
+          <ModalContent>
+            <ModalTitle>Warning: Overwrite Existing Standup</ModalTitle>
+            <ModalText>
+              A standup entry already exists for {formData.date}. 
+              If you continue, the existing entry will be permanently overwritten.
+              Are you sure you want to proceed?
+            </ModalText>
+            <ModalButtons>
+              <CancelModalButton onClick={() => setShowOverwriteModal(false)}>
+                Cancel
+              </CancelModalButton>
+              <ConfirmModalButton onClick={submitForm}>
+                Overwrite
+              </ConfirmModalButton>
+            </ModalButtons>
+          </ModalContent>
+        </ModalOverlay>
+      )}
     </FormContainer>
   );
 };
