@@ -284,7 +284,15 @@ const Dashboard: React.FC = () => {
       <WelcomeSection>
         <Title>Welcome to StandupSync</Title>
         <Subtitle>Track and manage your daily standups all in one place</Subtitle>
-        <ActionButton to="/standups/new">Create Today's Standup</ActionButton>
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+          <ActionButton to="/standups/new">Create Today's Standup</ActionButton>
+          <ActionButton to="/weekly-summary" style={{ backgroundColor: 'var(--secondary-color)' }}>
+            View Weekly Summary
+          </ActionButton>
+          <ActionButton to="/blocker-analysis" style={{ backgroundColor: 'var(--warning-color)' }}>
+            Blocker Analysis
+          </ActionButton>
+        </div>
       </WelcomeSection>
       
       <DashboardGrid>

@@ -10,6 +10,8 @@ import Search from './pages/Search';
 import QueryPage from './pages/QueryPage';
 import StandupList from './pages/StandupList';
 import TagsPage from './pages/TagsPage';
+import WeeklySummaryPage from './pages/WeeklySummary';
+import BlockerAnalysis from './pages/BlockerAnalysis';
 
 const AppContainer = styled.div`
   display: flex;
@@ -44,6 +46,8 @@ const App: React.FC = () => {
             <Route path="/search" element={<Search />} />
             <Route path="/query" element={<QueryPage />} />
             <Route path="/tags" element={<TagsPage />} />
+            <Route path="/weekly-summary" element={<WeeklySummaryPage />} />
+            <Route path="/blocker-analysis" element={<BlockerAnalysis />} />
           </Routes>
         </ContentContainer>
       </MainContainer>
