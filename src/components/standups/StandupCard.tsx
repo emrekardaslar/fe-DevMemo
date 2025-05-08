@@ -147,6 +147,12 @@ const getProductivityEmoji = (productivity: number): string => {
 };
 
 const StandupCard: React.FC<StandupCardProps> = ({ standup, onToggleHighlight, onDelete }) => {
+  // Add a handler with debug logging
+  const handleToggleHighlight = () => {
+    console.log('StandupCard: Toggling highlight for standup:', standup);
+    onToggleHighlight(standup.date);
+  };
+
   return (
     <Card $isHighlight={standup.isHighlight}>
       <CardHeader>
@@ -154,7 +160,10 @@ const StandupCard: React.FC<StandupCardProps> = ({ standup, onToggleHighlight, o
           {formatDate(standup.date)}
         </DateLink>
         <ActionButtons>
-          <IconButton onClick={() => onToggleHighlight(standup.date)} title={standup.isHighlight ? 'Remove highlight' : 'Highlight'}>
+          <IconButton 
+            onClick={handleToggleHighlight} 
+            title={standup.isHighlight ? 'Remove highlight' : 'Highlight'}
+          >
             {standup.isHighlight ? '⭐' : '☆'}
           </IconButton>
           <IconButton as={Link} to={`/standups/${standup.date}/edit`} title="Edit">

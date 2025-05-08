@@ -102,13 +102,43 @@ export const deleteStandup = (date: string): ThunkAction<void, RootState, unknow
 export const toggleHighlight = (date: string): ThunkAction<void, RootState, unknown, StandupAction> => {
   return async (dispatch) => {
     try {
+      console.log('toggleHighlight action: Starting for date:', date);
       dispatch({ type: StandupActionTypes.TOGGLE_HIGHLIGHT_REQUEST });
+      
+      // Call the API endpoint
       const response = await standupAPI.toggleHighlight(date);
+      console.log('toggleHighlight action: Got API response:', response);
+      
+      // Extract standup data from the response
+      let standup;
+      if (response.data && response.data.success === true && response.data.data) {
+        // Response format: { success: true, data: { ...standup } }
+        standup = response.data.data;
+        console.log('toggleHighlight action: Extracted nested standup data:', standup);
+      } else if (response.data) {
+        // Direct standup data or other response format
+        standup = response.data;
+        console.log('toggleHighlight action: Using direct standup data:', standup);
+      } else {
+        throw new Error('Invalid response format from API');
+      }
+      
+      // Verify we have valid standup data with a date
+      if (!standup || !standup.date) {
+        throw new Error(`Invalid standup data received: ${JSON.stringify(standup)}`);
+      }
+      
+      // Dispatch success action with the standup data
       dispatch({
         type: StandupActionTypes.TOGGLE_HIGHLIGHT_SUCCESS,
-        payload: response.data
+        payload: standup
       });
+      
+      // Optionally refresh standups list to ensure state consistency
+      dispatch(fetchStandups());
+      
     } catch (error) {
+      console.error('toggleHighlight action error:', error);
       dispatch({
         type: StandupActionTypes.TOGGLE_HIGHLIGHT_FAILURE,
         payload: (error as Error).message

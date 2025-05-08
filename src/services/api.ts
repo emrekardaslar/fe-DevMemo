@@ -128,9 +128,30 @@ export const standupAPI = {
   // Toggle highlight status
   toggleHighlight: async (date: string) => {
     try {
-      const response = await api.patch(`/standups/${date}/highlight`);
-      return response.data;
+      console.log('API: Toggling highlight for date:', date);
+      
+      // Make the API call with explicit URL and headers
+      const url = `${API_URL}/standups/${date}/highlight`;
+      console.log('API: Making PATCH request to:', url);
+      
+      const response = await axios({
+        method: 'PATCH',
+        url: url,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('API: Toggle highlight raw response:', response);
+      
+      // Return full response for consistent handling
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data
+      };
     } catch (error) {
+      console.error('API: Toggle highlight error:', error);
       return handleApiError(error);
     }
   },

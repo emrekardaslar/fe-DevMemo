@@ -325,6 +325,7 @@ const StandupForm: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { currentStandup, standups, loading, error, success } = useSelector((state: RootState) => state.standups);
+
   
   const [formData, setFormData] = useState<CreateStandupDto>({
     date: new Date().toISOString().split('T')[0], // Default to today
@@ -336,7 +337,7 @@ const StandupForm: React.FC = () => {
     productivity: 0,
     isHighlight: false
   });
-  
+
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [showOverwriteWarning, setShowOverwriteWarning] = useState(false);
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);

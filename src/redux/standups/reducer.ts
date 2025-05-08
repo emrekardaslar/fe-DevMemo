@@ -137,6 +137,18 @@ const standupReducer = (state = initialState, action: StandupAction): StandupSta
         error: null
       };
     case StandupActionTypes.TOGGLE_HIGHLIGHT_SUCCESS:
+      // Make sure we have valid payload data
+      if (!action.payload || !action.payload.date) {
+        console.error('Invalid payload in TOGGLE_HIGHLIGHT_SUCCESS:', action.payload);
+        return {
+          ...state,
+          loading: false,
+          error: 'Invalid response data for highlight toggle'
+        };
+      }
+      
+      console.log('Processing highlight toggle for standup:', action.payload);
+      
       return {
         ...state,
         loading: false,
