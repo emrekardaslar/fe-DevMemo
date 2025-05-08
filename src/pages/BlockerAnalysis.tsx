@@ -141,6 +141,13 @@ interface BlockerData {
   }>;
 }
 
+// Interface for backend response
+interface BlockerResponseItem {
+  blocker: string;
+  occurrences: number;
+  dates: string[];
+}
+
 const BlockerAnalysis: React.FC = () => {
   const [blockerData, setBlockerData] = useState<BlockerData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -154,7 +161,43 @@ const BlockerAnalysis: React.FC = () => {
         console.log('Blocker analysis response:', response);
         
         if (response && response.data) {
-          setBlockerData(response.data);
+          // Transform the backend response to match the expected format
+          const rawBlockers = Array.isArray(response.data) ? response.data as BlockerResponseItem[] : [];
+          
+          // Count total blockers
+          const total = rawBlockers.reduce((sum: number, item: BlockerResponseItem) => sum + (item.occurrences || 0), 0);
+          
+          // Process the blockers into the expected format
+          const processedData: BlockerData = {
+            total,
+            resolved: 0, // Backend doesn't provide this info currently
+            unresolved: total, // Assuming all are unresolved for now
+            blockers: [],
+            mostFrequentTerms: []
+          };
+          
+          // Convert to the format expected by the component
+          if (rawBlockers.length > 0) {
+            // Extract blockers
+            processedData.blockers = rawBlockers.flatMap((item: BlockerResponseItem) => {
+              // Each blocker item might have multiple dates
+              return (item.dates || []).map((date: string) => ({
+                date,
+                text: item.blocker || '',
+                resolved: false // Backend doesn't provide this info currently
+              }));
+            });
+            
+            // Extract most frequent terms - using the blockers themselves as terms
+            processedData.mostFrequentTerms = rawBlockers
+              .slice(0, 5)
+              .map((item: BlockerResponseItem) => ({
+                term: item.blocker || '',
+                count: item.occurrences || 0
+              }));
+          }
+          
+          setBlockerData(processedData);
         } else {
           throw new Error('Invalid response format');
         }
@@ -170,13 +213,20 @@ const BlockerAnalysis: React.FC = () => {
   }, []);
   
   const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    if (!dateString) return 'Unknown Date';
+    
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
   };
   
   if (loading) {
@@ -195,28 +245,28 @@ const BlockerAnalysis: React.FC = () => {
     <PageContainer>
       <PageHeader>
         <Title>Blocker Analysis</Title>
-        <BackLink to="/dashboard">← Back to dashboard</BackLink>
+        <BackLink to="/">← Back to dashboard</BackLink>
       </PageHeader>
       
       <Card>
         <StatsContainer>
           <StatCard>
-            <StatValue>{blockerData.total}</StatValue>
+            <StatValue>{blockerData.total || 0}</StatValue>
             <StatLabel>Total Blockers</StatLabel>
           </StatCard>
           
           <StatCard>
-            <StatValue>{blockerData.resolved}</StatValue>
+            <StatValue>{blockerData.resolved || 0}</StatValue>
             <StatLabel>Resolved</StatLabel>
           </StatCard>
           
           <StatCard>
-            <StatValue>{blockerData.unresolved}</StatValue>
+            <StatValue>{blockerData.unresolved || 0}</StatValue>
             <StatLabel>Unresolved</StatLabel>
           </StatCard>
         </StatsContainer>
         
-        {blockerData.mostFrequentTerms.length > 0 && (
+        {blockerData.mostFrequentTerms && blockerData.mostFrequentTerms.length > 0 && (
           <>
             <SectionTitle>Common Blocker Terms</SectionTitle>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -239,7 +289,7 @@ const BlockerAnalysis: React.FC = () => {
         
         <SectionTitle>Recent Blockers</SectionTitle>
         
-        {blockerData.blockers.length === 0 ? (
+        {!blockerData.blockers || blockerData.blockers.length === 0 ? (
           <EmptyMessage>No blockers reported yet</EmptyMessage>
         ) : (
           <BlockerList>
