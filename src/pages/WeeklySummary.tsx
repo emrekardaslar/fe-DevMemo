@@ -203,8 +203,8 @@ const WeeklySummaryPage: React.FC = () => {
           setWeekData(response.data);
           
           // Prepare chart data from standups
-          if (response.data.standups && response.data.standups.dates) {
-            const dates = response.data.standups.dates;
+          if (response.data.standups && Array.isArray(response.data.standups.dates)) {
+            const dates = response.data.standups.dates || [];
             const moodData = response.data.mood?.data || [];
             const productivityData = response.data.productivity?.data || [];
             
@@ -218,6 +218,8 @@ const WeeklySummaryPage: React.FC = () => {
             });
             
             setChartData(preparedData);
+          } else {
+            setChartData([]);
           }
         } else {
           throw new Error('Invalid response format');
@@ -234,13 +236,20 @@ const WeeklySummaryPage: React.FC = () => {
   }, []);
   
   const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    if (!dateString) return 'Unknown Date';
+    
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
   };
   
   if (loading) {
@@ -265,24 +274,24 @@ const WeeklySummaryPage: React.FC = () => {
       <Card>
         <WeekInfo>
           <WeekDate>
-            {formatDate(weekData.period.startDate)} to {formatDate(weekData.period.endDate)}
+            {weekData.period && weekData.period.startDate ? formatDate(weekData.period.startDate) : 'Unknown'} to {weekData.period && weekData.period.endDate ? formatDate(weekData.period.endDate) : 'Unknown'}
           </WeekDate>
-          <div>{weekData.standups.total} standup entries this week</div>
+          <div>{weekData.standups && weekData.standups.total ? weekData.standups.total : 0} standup entries this week</div>
         </WeekInfo>
         
         <StatsGrid>
           <StatCard>
-            <StatValue>{weekData.mood.average ? weekData.mood.average.toFixed(1) : 'N/A'}</StatValue>
+            <StatValue>{weekData.mood && weekData.mood.average ? weekData.mood.average.toFixed(1) : 'N/A'}</StatValue>
             <StatLabel>Average Mood</StatLabel>
           </StatCard>
           
           <StatCard>
-            <StatValue>{weekData.productivity.average ? weekData.productivity.average.toFixed(1) : 'N/A'}</StatValue>
+            <StatValue>{weekData.productivity && weekData.productivity.average ? weekData.productivity.average.toFixed(1) : 'N/A'}</StatValue>
             <StatLabel>Average Productivity</StatLabel>
           </StatCard>
           
           <StatCard>
-            <StatValue>{weekData.highlights.length}</StatValue>
+            <StatValue>{weekData.highlights && weekData.highlights.length ? weekData.highlights.length : 0}</StatValue>
             <StatLabel>Highlights</StatLabel>
           </StatCard>
         </StatsGrid>
@@ -323,7 +332,7 @@ const WeeklySummaryPage: React.FC = () => {
           </ChartSection>
         )}
         
-        {weekData.tags.length > 0 && (
+        {weekData.tags && weekData.tags.length > 0 && (
           <ChartSection>
             <SectionTitle>Tag Distribution</SectionTitle>
             <ChartContainer>
@@ -348,7 +357,7 @@ const WeeklySummaryPage: React.FC = () => {
           </ChartSection>
         )}
         
-        {weekData.achievements.length > 0 && (
+        {weekData.achievements && weekData.achievements.length > 0 && (
           <>
             <SectionTitle>Key Achievements</SectionTitle>
             <TaskList>
@@ -359,7 +368,7 @@ const WeeklySummaryPage: React.FC = () => {
           </>
         )}
         
-        {weekData.plans.length > 0 && (
+        {weekData.plans && weekData.plans.length > 0 && (
           <>
             <SectionTitle>Plans & Focus Areas</SectionTitle>
             <TaskList>
@@ -370,7 +379,7 @@ const WeeklySummaryPage: React.FC = () => {
           </>
         )}
         
-        {weekData.blockers.length > 0 && (
+        {weekData.blockers && weekData.blockers.length > 0 && (
           <>
             <SectionTitle>Challenges & Blockers</SectionTitle>
             <TaskList>
@@ -381,7 +390,7 @@ const WeeklySummaryPage: React.FC = () => {
           </>
         )}
         
-        {weekData.highlights.length > 0 && (
+        {weekData.highlights && weekData.highlights.length > 0 && (
           <>
             <SectionTitle>Highlights</SectionTitle>
             <TaskList>
