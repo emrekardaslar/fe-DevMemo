@@ -216,6 +216,19 @@ export const queryAPI = {
     }
   },
   
+  // Get all standups that have blockers
+  getAllWithBlockers: async () => {
+    try {
+      // This uses the standups API with a filter for non-empty blockers
+      const response = await api.get('/standups', { 
+        params: { hasBlockers: true } 
+      });
+      return response.data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+  
   // Process natural language query
   processQuery: async (query: string) => {
     try {

@@ -4,6 +4,7 @@ export interface Standup {
   yesterday: string;
   today: string;
   blockers: string;
+  isBlockerResolved: boolean;
   tags: string[];
   mood: number;
   productivity: number;

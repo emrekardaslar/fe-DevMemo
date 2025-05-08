@@ -148,6 +148,13 @@ interface BlockerResponseItem {
   dates: string[];
 }
 
+// Interface for standup with blockers
+interface StandupWithBlocker {
+  date: string;
+  blockers: string;
+  isBlockerResolved: boolean;
+}
+
 const BlockerAnalysis: React.FC = () => {
   const [blockerData, setBlockerData] = useState<BlockerData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -167,11 +174,24 @@ const BlockerAnalysis: React.FC = () => {
           // Count total blockers
           const total = rawBlockers.reduce((sum: number, item: BlockerResponseItem) => sum + (item.occurrences || 0), 0);
           
+          // Fetch all standups with blockers to check resolved status
+          const blockerStandups = await queryAPI.getAllWithBlockers();
+          
+          // Count resolved and unresolved blockers
+          let resolved = 0;
+          let unresolved = 0;
+          
+          if (blockerStandups && blockerStandups.data) {
+            const standups = blockerStandups.data as StandupWithBlocker[];
+            resolved = standups.filter((s: StandupWithBlocker) => s.isBlockerResolved).length;
+            unresolved = standups.filter((s: StandupWithBlocker) => !s.isBlockerResolved && s.blockers && s.blockers.trim() !== '').length;
+          }
+          
           // Process the blockers into the expected format
           const processedData: BlockerData = {
             total,
-            resolved: 0, // Backend doesn't provide this info currently
-            unresolved: total, // Assuming all are unresolved for now
+            resolved,
+            unresolved,
             blockers: [],
             mostFrequentTerms: []
           };
@@ -181,11 +201,17 @@ const BlockerAnalysis: React.FC = () => {
             // Extract blockers
             processedData.blockers = rawBlockers.flatMap((item: BlockerResponseItem) => {
               // Each blocker item might have multiple dates
-              return (item.dates || []).map((date: string) => ({
-                date,
-                text: item.blocker || '',
-                resolved: false // Backend doesn't provide this info currently
-              }));
+              return (item.dates || []).map((date: string) => {
+                // Find the standup to determine if it's resolved
+                const standup = blockerStandups?.data?.find((s: StandupWithBlocker) => s.date === date);
+                const resolved = standup ? standup.isBlockerResolved : false;
+                
+                return {
+                  date,
+                  text: item.blocker || '',
+                  resolved
+                };
+              });
             });
             
             // Extract most frequent terms - using the blockers themselves as terms

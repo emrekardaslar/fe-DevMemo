@@ -347,6 +347,7 @@ const StandupForm: React.FC = () => {
     yesterday: '',
     today: '',
     blockers: '',
+    isBlockerResolved: false,
     tags: [],
     mood: 0,
     productivity: 0,
@@ -387,6 +388,7 @@ const StandupForm: React.FC = () => {
         yesterday: currentStandup.yesterday,
         today: currentStandup.today,
         blockers: currentStandup.blockers,
+        isBlockerResolved: currentStandup.isBlockerResolved || false,
         tags: currentStandup.tags || [],
         mood: currentStandup.mood,
         productivity: currentStandup.productivity,
@@ -450,6 +452,13 @@ const StandupForm: React.FC = () => {
     setFormData(prev => ({
       ...prev,
       [type]: value
+    }));
+  };
+  
+  const handleToggleBlockerResolved = () => {
+    setFormData(prev => ({
+      ...prev,
+      isBlockerResolved: !prev.isBlockerResolved
     }));
   };
   
@@ -622,6 +631,22 @@ const StandupForm: React.FC = () => {
             onChange={handleChange}
             placeholder="* Waiting for access to the staging environment&#10;* Need clarification on design specs"
           />
+          
+          {formData.blockers && formData.blockers.trim() !== '' && (
+            <ToggleContainer>
+              <ToggleLabel htmlFor="blocker-resolved-toggle">
+                <ToggleSwitch checked={formData.isBlockerResolved} />
+                Mark blocker as resolved
+              </ToggleLabel>
+              <input
+                id="blocker-resolved-toggle"
+                type="checkbox"
+                style={{ display: 'none' }}
+                checked={formData.isBlockerResolved}
+                onChange={handleToggleBlockerResolved}
+              />
+            </ToggleContainer>
+          )}
         </FormGroup>
         
         <FormGroup>
