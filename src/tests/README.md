@@ -49,6 +49,39 @@ If you need to fix these TypeScript errors, here are a few approaches:
 3. **Type augmentation for test components**:
    Add a declaration file in the tests directory that augments React's IntrinsicAttributes to include your test props.
 
+## Recent Test Fixes
+
+We've addressed several test issues across the application:
+
+### 1. Action Creator Mocking
+
+Fixed in `mock-tests.test.ts`:
+- Replaced string literals with the `StandupActionTypes` enum constants
+- Used direct action creators in test files rather than importing them
+- Created consistent action creators to avoid type mismatches
+
+### 2. Component Mocking Improvements
+
+Fixed in page component tests:
+- Added proper interfaces for mock component props
+- Implemented event handlers in mock components to simulate real behavior
+- Added proper `useEffect` cleanup to test component unmounting
+- Used `toContainEqual` instead of exact matching for action verification
+
+### 3. Navigation Handling
+
+Fixed in form tests:
+- Properly mocked React Router's `useNavigate` hook
+- Implemented cancel button behavior with correct navigation
+- Added proper verification for navigation after form actions
+
+### 4. Redux Store Integration
+
+Fixed in all component tests:
+- Used `configureStore` consistently to create mock stores
+- Separated action creation from action dispatching
+- Properly mocked store dispatch for action verification
+
 ## Test Guidelines
 
 - Use mock implementations rather than spying on real components when possible
