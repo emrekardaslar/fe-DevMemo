@@ -6,6 +6,10 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar
 } from 'recharts';
+import WeekNavigation from '../components/standups/WeekNavigation';
+import WeekCalendar from '../components/standups/WeekCalendar';
+import WeeklyComparison from '../components/standups/WeeklyComparison';
+import { FaDownload, FaCopy, FaPrint, FaShare } from 'react-icons/fa';
 
 const PageContainer = styled.div`
   max-width: 900px;
@@ -16,7 +20,7 @@ const PageHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 `;
 
 const Title = styled.h1`
@@ -153,6 +157,46 @@ const ChartSection = styled.div`
   margin-bottom: 2rem;
 `;
 
+const ActionBar = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+  gap: 0.5rem;
+`;
+
+const ActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--card-background);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+  }
+  
+  svg {
+    margin-right: 0.5rem;
+  }
+`;
+
+const LinkItem = styled(Link)`
+  color: var(--primary-color);
+  text-decoration: none;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 interface WeeklySummary {
   period: {
     startDate: string;
@@ -182,59 +226,149 @@ interface WeeklySummary {
 
 interface ChartData {
   name: string;
+  fullDate: string;
   mood: number;
   productivity: number;
 }
 
+interface ComparisonData {
+  standupCount: number;
+  averageMood: number;
+  averageProductivity: number;
+  highlightCount: number;
+  blockerCount: number;
+  uniqueTagCount: number;
+}
+
 const WeeklySummaryPage: React.FC = () => {
   const [weekData, setWeekData] = useState<WeeklySummary | null>(null);
+  const [previousWeekData, setPreviousWeekData] = useState<WeeklySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   
+  // Initialize start and end dates to current week
   useEffect(() => {
-    const fetchWeeklySummary = async () => {
-      try {
-        setLoading(true);
-        const response = await queryAPI.getWeeklySummary();
-        console.log('Weekly summary response:', response);
-        
-        if (response && response.data) {
-          setWeekData(response.data);
-          
-          // Prepare chart data from standups
-          if (response.data.standups && Array.isArray(response.data.standups.dates)) {
-            const dates = response.data.standups.dates || [];
-            const moodData = response.data.mood?.data || [];
-            const productivityData = response.data.productivity?.data || [];
-            
-            const preparedData = dates.map((date: string, index: number) => {
-              return {
-                name: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
-                fullDate: date,
-                mood: moodData[index] || 0,
-                productivity: productivityData[index] || 0
-              };
-            });
-            
-            setChartData(preparedData);
-          } else {
-            setChartData([]);
-          }
-        } else {
-          throw new Error('Invalid response format');
-        }
-      } catch (err) {
-        console.error('Error fetching weekly summary:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - dayOfWeek);
+    startOfWeek.setHours(0, 0, 0, 0);
     
-    fetchWeeklySummary();
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+    
+    setStartDate(startOfWeek.toISOString().split('T')[0]);
+    setEndDate(endOfWeek.toISOString().split('T')[0]);
   }, []);
   
+  // Fetch week data when dates change
+  useEffect(() => {
+    if (startDate && endDate) {
+      fetchWeeklySummary(startDate, endDate);
+      fetchPreviousWeekSummary(startDate);
+    }
+  }, [startDate, endDate]);
+  
+  // Fetch weekly summary
+  const fetchWeeklySummary = async (start: string, end: string) => {
+    try {
+      setLoading(true);
+      const response = await queryAPI.getWeeklySummary(start, end);
+      console.log('Weekly summary response:', response);
+      
+      if (response && response.data) {
+        setWeekData(response.data);
+        
+        // Prepare chart data from standups
+        if (response.data.standups && Array.isArray(response.data.standups.dates)) {
+          const dates = response.data.standups.dates || [];
+          const moodData = response.data.mood?.data || [];
+          const productivityData = response.data.productivity?.data || [];
+          
+          const preparedData = dates.map((date: string, index: number) => {
+            return {
+              name: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
+              fullDate: date,
+              mood: moodData[index] || 0,
+              productivity: productivityData[index] || 0
+            };
+          });
+          
+          setChartData(preparedData);
+        } else {
+          setChartData([]);
+        }
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (err) {
+      console.error('Error fetching weekly summary:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Fetch previous week's summary
+  const fetchPreviousWeekSummary = async (currentStartDate: string) => {
+    try {
+      const currentStart = new Date(currentStartDate);
+      const previousStart = new Date(currentStart);
+      previousStart.setDate(currentStart.getDate() - 7);
+      
+      const previousEnd = new Date(previousStart);
+      previousEnd.setDate(previousStart.getDate() + 6);
+      
+      const prevStart = previousStart.toISOString().split('T')[0];
+      const prevEnd = previousEnd.toISOString().split('T')[0];
+      
+      const response = await queryAPI.getWeeklySummary(prevStart, prevEnd);
+      
+      if (response && response.data) {
+        setPreviousWeekData(response.data);
+      } else {
+        setPreviousWeekData(null);
+      }
+    } catch (err) {
+      console.error('Error fetching previous week summary:', err);
+      setPreviousWeekData(null);
+    }
+  };
+  
+  // Handle week change
+  const handleWeekChange = (newStartDate: string, newEndDate: string) => {
+    setStartDate(newStartDate);
+    setEndDate(newEndDate);
+  };
+  
+  // Get comparison data
+  const getComparisonData = (): { current: ComparisonData, previous: ComparisonData | null } => {
+    const current: ComparisonData = {
+      standupCount: weekData?.standups?.total || 0,
+      averageMood: weekData?.mood?.average || 0,
+      averageProductivity: weekData?.productivity?.average || 0,
+      highlightCount: weekData?.highlights?.length || 0,
+      blockerCount: weekData?.blockers?.length || 0,
+      uniqueTagCount: weekData?.tags?.length || 0
+    };
+    
+    const previous = previousWeekData ? {
+      standupCount: previousWeekData?.standups?.total || 0,
+      averageMood: previousWeekData?.mood?.average || 0,
+      averageProductivity: previousWeekData?.productivity?.average || 0,
+      highlightCount: previousWeekData?.highlights?.length || 0,
+      blockerCount: previousWeekData?.blockers?.length || 0,
+      uniqueTagCount: previousWeekData?.tags?.length || 0
+    } : null;
+    
+    return { current, previous };
+  };
+  
+  // Format date for display
   const formatDate = (dateString: string): string => {
     if (!dateString) return 'Unknown Date';
     
@@ -252,11 +386,51 @@ const WeeklySummaryPage: React.FC = () => {
     }
   };
   
-  if (loading) {
+  // Copy summary to clipboard
+  const handleCopySummary = () => {
+    if (!weekData) return;
+    
+    const summaryText = `
+Weekly Summary (${formatDate(weekData.period.startDate)} to ${formatDate(weekData.period.endDate)})
+
+Standups: ${weekData.standups.total}
+Average Mood: ${weekData.mood.average.toFixed(1)}/5
+Average Productivity: ${weekData.productivity.average.toFixed(1)}/5
+Highlights: ${weekData.highlights.length}
+
+Key Achievements:
+${weekData.achievements.map(a => `- ${a}`).join('\n')}
+
+Plans:
+${weekData.plans.map(p => `- ${p}`).join('\n')}
+
+Blockers:
+${weekData.blockers.map(b => `- ${b}`).join('\n')}
+
+Top Tags:
+${weekData.tags.slice(0, 5).map(t => `- ${t.tag} (${t.count})`).join('\n')}
+    `.trim();
+    
+    navigator.clipboard.writeText(summaryText)
+      .then(() => {
+        alert('Summary copied to clipboard!');
+      })
+      .catch(err => {
+        console.error('Failed to copy summary:', err);
+        alert('Failed to copy summary. Please try again.');
+      });
+  };
+  
+  // Print summary
+  const handlePrint = () => {
+    window.print();
+  };
+  
+  if (loading && !weekData) {
     return <LoadingMessage>Loading weekly summary...</LoadingMessage>;
   }
   
-  if (error) {
+  if (error && !weekData) {
     return <ErrorMessage>Error: {error}</ErrorMessage>;
   }
   
@@ -264,12 +438,37 @@ const WeeklySummaryPage: React.FC = () => {
     return <ErrorMessage>No weekly data available</ErrorMessage>;
   }
   
+  const { current, previous } = getComparisonData();
+  
   return (
     <PageContainer>
       <PageHeader>
         <Title>Weekly Summary</Title>
         <BackLink to="/">← Back to dashboard</BackLink>
       </PageHeader>
+      
+      <WeekNavigation 
+        startDate={startDate} 
+        endDate={endDate} 
+        onWeekChange={handleWeekChange} 
+      />
+      
+      <ActionBar>
+        <ActionButton onClick={handleCopySummary} title="Copy summary to clipboard">
+          <FaCopy /> Copy
+        </ActionButton>
+        <ActionButton onClick={handlePrint} title="Print summary">
+          <FaPrint /> Print
+        </ActionButton>
+      </ActionBar>
+      
+      <WeekCalendar 
+        startDate={startDate}
+        dates={weekData.standups.dates || []}
+        highlights={weekData.highlights.map(h => h.split(':')[0]) || []}
+      />
+      
+      {previous && <WeeklyComparison currentWeek={current} previousWeek={previous} />}
       
       <Card>
         <WeekInfo>
@@ -310,7 +509,14 @@ const WeeklySummaryPage: React.FC = () => {
                   <YAxis domain={[0, 5]} />
                   <Tooltip 
                     formatter={(value, name) => [value, name === 'mood' ? 'Mood' : 'Productivity']}
-                    labelFormatter={(label) => `Day: ${label}`}
+                    labelFormatter={(label, items) => {
+                      if (items && items.length > 0) {
+                        const item = items[0];
+                        const payload = item.payload as ChartData;
+                        return `${label} (${new Date(payload.fullDate).toLocaleDateString()})`;
+                      }
+                      return label;
+                    }}
                   />
                   <Legend />
                   <Line
@@ -394,9 +600,19 @@ const WeeklySummaryPage: React.FC = () => {
           <>
             <SectionTitle>Highlights</SectionTitle>
             <TaskList>
-              {weekData.highlights.map((highlight, index) => (
-                <TaskItem key={index}>{highlight}</TaskItem>
-              ))}
+              {weekData.highlights.map((highlight, index) => {
+                const parts = highlight.split(':');
+                const date = parts[0];
+                const content = parts.slice(1).join(':');
+                
+                return (
+                  <TaskItem key={index}>
+                    <LinkItem to={`/standups/${date.trim()}`}>
+                      {new Date(date).toLocaleDateString()}: 
+                    </LinkItem> {content.trim()}
+                  </TaskItem>
+                );
+              })}
             </TaskList>
           </>
         )}

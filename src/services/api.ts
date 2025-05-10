@@ -187,9 +187,13 @@ export const standupAPI = {
 // Query API calls
 export const queryAPI = {
   // Get weekly summary
-  getWeeklySummary: async () => {
+  getWeeklySummary: async (startDate?: string, endDate?: string) => {
     try {
-      const response = await api.get('/query/week');
+      const params: Record<string, string> = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      
+      const response = await api.get('/query/week', { params });
       return response.data;
     } catch (error) {
       return handleApiError(error);
