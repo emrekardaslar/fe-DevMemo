@@ -72,6 +72,12 @@ const Sidebar: React.FC = () => {
           </StyledNavLink>
         </NavItem>
         <NavItem>
+          <StyledNavLink to="/monthly-focus">
+            <NavIcon>📆</NavIcon>
+            Monthly Focus
+          </StyledNavLink>
+        </NavItem>
+        <NavItem>
           <StyledNavLink to="/blocker-analysis">
             <NavIcon>🚫</NavIcon>
             Blocker Analysis

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { queryAPI } from '../services/api';
+import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, LineChart, Line, CartesianGrid, Legend } from 'recharts';
 
 const PageContainer = styled.div`
   max-width: 900px;
@@ -126,6 +127,63 @@ const ErrorMessage = styled.div`
   color: var(--error-color);
 `;
 
+const ChartContainer = styled.div`
+  margin: 2rem 0;
+  height: 300px;
+`;
+
+const ChartLegend = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+`;
+
+const LegendItem = styled.div`
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+`;
+
+const LegendColor = styled.div<{ color: string }>`
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: ${props => props.color};
+  margin-right: 8px;
+`;
+
+const TabContainer = styled.div`
+  margin-top: 2rem;
+`;
+
+const TabButtons = styled.div`
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1.5rem;
+`;
+
+const TabButton = styled.button<{ active: boolean }>`
+  padding: 0.75rem 1.25rem;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  border-bottom: 2px solid ${props => props.active ? 'var(--primary-color)' : 'transparent'};
+  color: ${props => props.active ? 'var(--primary-color)' : 'var(--text-secondary)'};
+  font-weight: ${props => props.active ? '600' : '400'};
+  transition: all 0.2s ease;
+  
+  &:hover {
+    color: var(--primary-color);
+  }
+`;
+
+const TabContent = styled.div`
+  padding: 0.5rem 0;
+`;
+
 interface BlockerData {
   total: number;
   resolved: number;
@@ -155,10 +213,24 @@ interface StandupWithBlocker {
   isBlockerResolved: boolean;
 }
 
+interface BlockerTrend {
+  month: string;
+  count: number;
+  resolvedCount: number;
+  unresolvedCount: number;
+}
+
+// Colors for charts
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+const RESOLVED_COLOR = '#2ecc71';
+const UNRESOLVED_COLOR = '#e74c3c';
+
 const BlockerAnalysis: React.FC = () => {
   const [blockerData, setBlockerData] = useState<BlockerData | null>(null);
+  const [blockerTrends, setBlockerTrends] = useState<BlockerTrend[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'trend' | 'details'>('overview');
   
   useEffect(() => {
     const fetchBlockers = async () => {
@@ -222,7 +294,57 @@ const BlockerAnalysis: React.FC = () => {
                 count: item.occurrences || 0
               }));
           }
+
+          // Generate trend data by grouping by month
+          const trendMap = new Map<string, BlockerTrend>();
+
+          if (blockerStandups && blockerStandups.data) {
+            const standups = blockerStandups.data as StandupWithBlocker[];
+            
+            standups.forEach((standup: StandupWithBlocker) => {
+              try {
+                const date = new Date(standup.date);
+                const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+                const monthName = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+                
+                if (!trendMap.has(monthKey)) {
+                  trendMap.set(monthKey, {
+                    month: monthName,
+                    count: 0,
+                    resolvedCount: 0,
+                    unresolvedCount: 0
+                  });
+                }
+                
+                const trendData = trendMap.get(monthKey)!;
+                trendData.count += 1;
+                
+                if (standup.isBlockerResolved) {
+                  trendData.resolvedCount += 1;
+                } else {
+                  trendData.unresolvedCount += 1;
+                }
+              } catch (err) {
+                console.error('Error processing date for trend:', err);
+              }
+            });
+          }
           
+          // Convert map to array and sort by date
+          const trends = Array.from(trendMap.values());
+          trends.sort((a, b) => {
+            const [monthA, yearA] = a.month.split(' ');
+            const [monthB, yearB] = b.month.split(' ');
+            
+            if (yearA !== yearB) {
+              return yearA.localeCompare(yearB);
+            }
+            
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return monthNames.indexOf(monthA) - monthNames.indexOf(monthB);
+          });
+          
+          setBlockerTrends(trends);
           setBlockerData(processedData);
         } else {
           throw new Error('Invalid response format');
@@ -254,6 +376,23 @@ const BlockerAnalysis: React.FC = () => {
       return 'Invalid Date';
     }
   };
+
+  // Custom tooltip for the pie chart
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div style={{ 
+          backgroundColor: '#fff', 
+          padding: '10px', 
+          border: '1px solid #ccc',
+          borderRadius: '4px' 
+        }}>
+          <p style={{ margin: 0 }}>{`${payload[0].name}: ${payload[0].value}`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
   
   if (loading) {
     return <LoadingMessage>Loading blocker analysis...</LoadingMessage>;
@@ -266,6 +405,19 @@ const BlockerAnalysis: React.FC = () => {
   if (!blockerData) {
     return <ErrorMessage>No blocker data available</ErrorMessage>;
   }
+
+  // Prepare data for pie chart
+  const pieData = [
+    { name: 'Resolved', value: blockerData.resolved },
+    { name: 'Unresolved', value: blockerData.unresolved }
+  ];
+
+  // Prepare data for the bar chart of most frequent terms
+  const barData = blockerData.mostFrequentTerms.map(term => ({
+    name: term.term.length > 15 ? term.term.substring(0, 15) + '...' : term.term,
+    value: term.count,
+    fullName: term.term // Keep the full name for tooltip
+  }));
   
   return (
     <PageContainer>
@@ -281,8 +433,8 @@ const BlockerAnalysis: React.FC = () => {
             <StatLabel>Total Blockers</StatLabel>
           </StatCard>
           
-          <StatCard>
-            <StatValue>{blockerData.resolved || 0}</StatValue>
+          <StatCard style={{ backgroundColor: 'rgba(46, 204, 113, 0.1)' }}>
+            <StatValue style={{ color: 'var(--success-color)' }}>{blockerData.resolved || 0}</StatValue>
             <StatLabel>Resolved</StatLabel>
           </StatCard>
           
@@ -291,52 +443,170 @@ const BlockerAnalysis: React.FC = () => {
             <StatLabel>Unresolved</StatLabel>
           </StatCard>
         </StatsContainer>
-        
-        {blockerData.mostFrequentTerms && blockerData.mostFrequentTerms.length > 0 && (
-          <>
-            <SectionTitle>Common Blocker Terms</SectionTitle>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {blockerData.mostFrequentTerms.map((term, index) => (
-                <div
-                  key={index}
-                  style={{
-                    padding: '0.5rem 0.75rem',
-                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                    borderRadius: '16px',
-                    fontSize: '0.9rem',
-                  }}
-                >
-                  {term.term} ({term.count})
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-        
-        <SectionTitle>Recent Blockers</SectionTitle>
-        
-        {!blockerData.blockers || blockerData.blockers.length === 0 ? (
-          <EmptyMessage>No blockers reported yet</EmptyMessage>
-        ) : (
-          <BlockerList>
-            {blockerData.blockers.map((blocker, index) => (
-              <BlockerItem key={index} style={{
-                backgroundColor: blocker.resolved 
-                  ? 'rgba(46, 204, 113, 0.05)' 
-                  : 'rgba(231, 76, 60, 0.05)',
-                borderLeftColor: blocker.resolved 
-                  ? 'var(--success-color)' 
-                  : 'var(--warning-color)'
-              }}>
-                <BlockerDate>{formatDate(blocker.date)}</BlockerDate>
-                <BlockerText>{blocker.text}</BlockerText>
-                <BlockerLink to={`/standups/${blocker.date}`}>
-                  View standup details →
-                </BlockerLink>
-              </BlockerItem>
-            ))}
-          </BlockerList>
-        )}
+
+        <TabContainer>
+          <TabButtons>
+            <TabButton 
+              active={activeTab === 'overview'} 
+              onClick={() => setActiveTab('overview')}
+            >
+              Overview
+            </TabButton>
+            <TabButton 
+              active={activeTab === 'trend'} 
+              onClick={() => setActiveTab('trend')}
+            >
+              Trends
+            </TabButton>
+            <TabButton 
+              active={activeTab === 'details'} 
+              onClick={() => setActiveTab('details')}
+            >
+              Details
+            </TabButton>
+          </TabButtons>
+
+          <TabContent>
+            {activeTab === 'overview' && (
+              <>
+                {/* Resolution Status Pie Chart */}
+                <SectionTitle>Blocker Resolution Status</SectionTitle>
+                <ChartContainer>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      >
+                        <Cell key="resolved" fill={RESOLVED_COLOR} />
+                        <Cell key="unresolved" fill={UNRESOLVED_COLOR} />
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+                <ChartLegend>
+                  <LegendItem>
+                    <LegendColor color={RESOLVED_COLOR} />
+                    Resolved
+                  </LegendItem>
+                  <LegendItem>
+                    <LegendColor color={UNRESOLVED_COLOR} />
+                    Unresolved
+                  </LegendItem>
+                </ChartLegend>
+
+                {/* Most Common Blockers Bar Chart */}
+                {blockerData.mostFrequentTerms && blockerData.mostFrequentTerms.length > 0 && (
+                  <>
+                    <SectionTitle>Common Blocker Terms</SectionTitle>
+                    <ChartContainer>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={barData} margin={{ top: 5, right: 30, left: 20, bottom: 60 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            dataKey="name" 
+                            angle={-45} 
+                            textAnchor="end" 
+                            height={60} 
+                            interval={0}
+                          />
+                          <YAxis />
+                          <Tooltip 
+                            formatter={(value: any, name: any, props: any) => [value, props.payload.fullName]} 
+                            labelFormatter={(value) => ''}
+                          />
+                          <Bar dataKey="value" fill="#8884d8">
+                            {barData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                  </>
+                )}
+              </>
+            )}
+
+            {activeTab === 'trend' && (
+              <>
+                <SectionTitle>Blocker Trends Over Time</SectionTitle>
+                {blockerTrends.length > 0 ? (
+                  <ChartContainer>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={blockerTrends}
+                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line 
+                          type="monotone" 
+                          dataKey="count" 
+                          name="Total Blockers" 
+                          stroke="#8884d8" 
+                          activeDot={{ r: 8 }} 
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="resolvedCount" 
+                          name="Resolved" 
+                          stroke={RESOLVED_COLOR} 
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="unresolvedCount" 
+                          name="Unresolved" 
+                          stroke={UNRESOLVED_COLOR} 
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                ) : (
+                  <EmptyMessage>Not enough data to display trends</EmptyMessage>
+                )}
+              </>
+            )}
+
+            {activeTab === 'details' && (
+              <>
+                <SectionTitle>Blockers List</SectionTitle>
+                {!blockerData.blockers || blockerData.blockers.length === 0 ? (
+                  <EmptyMessage>No blockers reported yet</EmptyMessage>
+                ) : (
+                  <BlockerList>
+                    {blockerData.blockers.map((blocker, index) => (
+                      <BlockerItem key={index} style={{
+                        backgroundColor: blocker.resolved 
+                          ? 'rgba(46, 204, 113, 0.05)' 
+                          : 'rgba(231, 76, 60, 0.05)',
+                        borderLeftColor: blocker.resolved 
+                          ? 'var(--success-color)' 
+                          : 'var(--warning-color)'
+                      }}>
+                        <BlockerDate>{formatDate(blocker.date)}</BlockerDate>
+                        <BlockerText>{blocker.text}</BlockerText>
+                        <BlockerLink to={`/standups/${blocker.date}`}>
+                          View standup details →
+                        </BlockerLink>
+                      </BlockerItem>
+                    ))}
+                  </BlockerList>
+                )}
+              </>
+            )}
+          </TabContent>
+        </TabContainer>
       </Card>
     </PageContainer>
   );

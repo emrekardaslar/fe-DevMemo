@@ -12,6 +12,7 @@ import StandupList from './pages/StandupList';
 import TagsPage from './pages/TagsPage';
 import WeeklySummaryPage from './pages/WeeklySummary';
 import BlockerAnalysis from './pages/BlockerAnalysis';
+import MonthlyFocus from './pages/MonthlyFocus';
 
 const AppContainer = styled.div`
   display: flex;
@@ -48,6 +49,7 @@ const App: React.FC = () => {
             <Route path="/tags" element={<TagsPage />} />
             <Route path="/weekly-summary" element={<WeeklySummaryPage />} />
             <Route path="/blocker-analysis" element={<BlockerAnalysis />} />
+            <Route path="/monthly-focus" element={<MonthlyFocus />} />
           </Routes>
         </ContentContainer>
       </MainContainer>
