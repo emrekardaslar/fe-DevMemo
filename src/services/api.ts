@@ -9,13 +9,9 @@ if (typeof window !== 'undefined' && window.location) {
   // In browser environment - derive API URL from current location
   if (window.location.hostname === 'localhost') {
     API_URL = 'http://localhost:4000/api';
-  } else if (window.location.hostname.includes('render.com')) {
-    API_URL = 'https://be-devmemo.onrender.com/api';
   } else {
     // For other production environments
-    const protocol = window.location.protocol;
-    const hostname = window.location.hostname.replace('app.', 'api.');
-    API_URL = `${protocol}//${hostname}/api`;
+    API_URL = 'https://be-devmemo.onrender.com/api';
   }
 } else {
   // Fallback for non-browser environment or during server-side rendering
