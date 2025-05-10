@@ -1,7 +1,28 @@
 import axios, { AxiosError } from 'axios';
 import { Standup, CreateStandupDto, UpdateStandupDto } from '../redux/standups/types';
 
-const API_URL = 'http://localhost:4000/api';
+// Get API URL with fallback mechanism
+let API_URL: string;
+
+// For production build
+if (typeof window !== 'undefined' && window.location) {
+  // In browser environment - derive API URL from current location
+  if (window.location.hostname === 'localhost') {
+    API_URL = 'http://localhost:4000/api';
+  } else if (window.location.hostname.includes('render.com')) {
+    API_URL = 'https://be-devmemo.onrender.com/api';
+  } else {
+    // For other production environments
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname.replace('app.', 'api.');
+    API_URL = `${protocol}//${hostname}/api`;
+  }
+} else {
+  // Fallback for non-browser environment or during server-side rendering
+  API_URL = 'https://be-devmemo.onrender.com/api';
+}
+
+console.log('Using API URL:', API_URL);
 
 // Create axios instance
 const api = axios.create({
