@@ -8,10 +8,15 @@ import * as DashboardModule from '../../pages/Dashboard';
 import { StandupActionTypes } from '../../redux/standups/types';
 import { standupAPI } from '../../services/api';
 
+// Define an interface for the Dashboard component props
+interface MockDashboardProps {
+  dispatch: any;
+}
+
 // Mock the Dashboard component instead of useEffect to avoid rendering issues
 jest.mock('../../pages/Dashboard', () => {
   // Create a mock version of the Dashboard component
-  const MockDashboard = ({ dispatch }: { dispatch: any }) => {
+  const MockDashboard = (props: MockDashboardProps) => {
     return (
       <div>
         <h1>Welcome to StandupSync</h1>

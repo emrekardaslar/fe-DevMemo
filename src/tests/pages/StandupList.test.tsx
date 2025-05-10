@@ -24,15 +24,18 @@ const actionCreators = {
   })
 };
 
+// Create an interface for the component props
+interface MockStandupListProps {
+  standups: Standup[];
+  loading: boolean;
+  error: string | null;
+  dispatch: any;
+}
+
 // Mock the StandupList module to prevent useEffect from running
 jest.mock('../../pages/StandupList', () => {
   // Create a mock version that doesn't include the useEffect hook
-  const MockStandupList = (props: {
-    standups: Standup[],
-    loading: boolean,
-    error: string | null,
-    dispatch: any
-  }) => {
+  const MockStandupList = (props: MockStandupListProps) => {
     // Handlers for actions
     const handleToggleHighlight = (date: string) => {
       props.dispatch(actionCreators.toggleHighlight(date));

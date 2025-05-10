@@ -7,6 +7,11 @@ import { BrowserRouter, useParams, useNavigate } from 'react-router-dom';
 import * as StandupFormModule from '../../pages/StandupForm';
 import { StandupActionTypes } from '../../redux/standups/types';
 
+// Define interface for StandupForm props
+interface MockStandupFormProps {
+  dispatch: any;
+}
+
 // Define our action creators directly using action types from the types file
 const actionCreators = {
   createStandup: () => ({ type: StandupActionTypes.CREATE_STANDUP_REQUEST }),
@@ -27,14 +32,14 @@ jest.mock('react-router-dom', () => ({
 // Create a simplified mock version of StandupForm that doesn't include the actual component logic
 jest.mock('../../pages/StandupForm', () => {
   // Mock component that renders basic form elements and handles unmounting
-  const MockStandupForm = ({ dispatch }: { dispatch: any }) => {
+  const MockStandupForm: React.FC<MockStandupFormProps> = (props) => {
     // Add useEffect hook to mimic componentWillUnmount
     useEffect(() => {
       // This will run when the component unmounts
       return () => {
-        dispatch(actionCreators.clearStandup());
+        props.dispatch(actionCreators.clearStandup());
       };
-    }, [dispatch]);
+    }, [props.dispatch]);
 
     // Mock the cancel button behavior
     const navigate = useNavigate();
