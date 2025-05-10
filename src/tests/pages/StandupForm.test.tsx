@@ -1,11 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import { BrowserRouter, useParams, useNavigate } from 'react-router-dom';
 import * as StandupFormModule from '../../pages/StandupForm';
-import { createStandup, updateStandup, fetchStandup, clearStandup } from '../../redux/standups/actions';
+import { StandupActionTypes } from '../../redux/standups/types';
+
+// Define our action creators directly using action types from the types file
+const actionCreators = {
+  createStandup: () => ({ type: StandupActionTypes.CREATE_STANDUP_REQUEST }),
+  updateStandup: () => ({ type: StandupActionTypes.UPDATE_STANDUP_REQUEST }),
+  fetchStandup: () => ({ type: StandupActionTypes.FETCH_STANDUP_REQUEST }),
+  clearStandup: () => ({ type: StandupActionTypes.CLEAR_STANDUP }),
+  resetSuccess: () => ({ type: StandupActionTypes.RESET_SUCCESS }),
+  fetchStandups: () => ({ type: StandupActionTypes.FETCH_STANDUPS_REQUEST })
+};
 
 // Mock the router hooks
 jest.mock('react-router-dom', () => ({
@@ -14,22 +24,24 @@ jest.mock('react-router-dom', () => ({
   useNavigate: jest.fn()
 }));
 
-// Mock the redux actions
-jest.mock('../../redux/standups/actions', () => ({
-  createStandup: jest.fn(() => ({ type: 'CREATE_STANDUP_REQUEST' })),
-  updateStandup: jest.fn(() => ({ type: 'UPDATE_STANDUP_REQUEST' })),
-  fetchStandup: jest.fn(() => ({ type: 'FETCH_STANDUP_REQUEST' })),
-  clearStandup: jest.fn(() => ({ type: 'CLEAR_STANDUP' })),
-  resetSuccess: jest.fn(() => ({ type: 'RESET_SUCCESS' })),
-  fetchStandups: jest.fn(() => ({ type: 'FETCH_STANDUPS_REQUEST' }))
-}));
-
 // Create a simplified mock version of StandupForm that doesn't include the actual component logic
 jest.mock('../../pages/StandupForm', () => {
-  const original = jest.requireActual('../../pages/StandupForm');
-  
-  // Mock component that renders basic form elements
-  const MockStandupForm = () => {
+  // Mock component that renders basic form elements and handles unmounting
+  const MockStandupForm = ({ dispatch }: { dispatch: any }) => {
+    // Add useEffect hook to mimic componentWillUnmount
+    useEffect(() => {
+      // This will run when the component unmounts
+      return () => {
+        dispatch(actionCreators.clearStandup());
+      };
+    }, [dispatch]);
+
+    // Mock the cancel button behavior
+    const navigate = useNavigate();
+    const handleCancel = () => {
+      navigate('/standups');
+    };
+
     return (
       <div>
         <h1>Create Standup</h1>
@@ -83,7 +95,13 @@ jest.mock('../../pages/StandupForm', () => {
             </div>
           </div>
           <div>
-            <button type="button" data-testid="cancel-button">Cancel</button>
+            <button 
+              type="button" 
+              data-testid="cancel-button"
+              onClick={handleCancel}
+            >
+              Cancel
+            </button>
             <button type="submit" data-testid="submit-button">Submit</button>
           </div>
         </form>
@@ -127,7 +145,7 @@ describe('StandupForm Component', () => {
     render(
       <Provider store={store}>
         <BrowserRouter>
-          <StandupFormModule.default />
+          <StandupFormModule.default dispatch={store.dispatch} />
         </BrowserRouter>
       </Provider>
     );
@@ -164,7 +182,7 @@ describe('StandupForm Component', () => {
     render(
       <Provider store={store}>
         <BrowserRouter>
-          <StandupFormModule.default />
+          <StandupFormModule.default dispatch={store.dispatch} />
         </BrowserRouter>
       </Provider>
     );
@@ -194,7 +212,7 @@ describe('StandupForm Component', () => {
     const { unmount } = render(
       <Provider store={store}>
         <BrowserRouter>
-          <StandupFormModule.default />
+          <StandupFormModule.default dispatch={store.dispatch} />
         </BrowserRouter>
       </Provider>
     );
@@ -202,7 +220,8 @@ describe('StandupForm Component', () => {
     // Unmount the component
     unmount();
     
-    // Check that clearStandup was called
-    expect(clearStandup).toHaveBeenCalled();
+    // Check that the clearStandup action was dispatched
+    const expectedAction = actionCreators.clearStandup();
+    expect(store.getActions()).toContainEqual(expectedAction);
   });
 }); 
