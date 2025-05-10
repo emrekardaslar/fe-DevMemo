@@ -81,14 +81,20 @@ interface WeekCalendarProps {
   highlights: string[];
 }
 
+interface DayData {
+  date: string;
+  day: number;
+  weekday: string;
+  hasEntry: boolean;
+  isHighlight: boolean;
+  isToday: boolean;
+}
+
 const WeekCalendar: React.FC<WeekCalendarProps> = ({
   startDate,
   dates,
   highlights
 }) => {
-  // Days of the week
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  
   // Check if a date has an entry
   const hasEntry = (date: string) => dates.includes(date);
   
@@ -103,18 +109,23 @@ const WeekCalendar: React.FC<WeekCalendarProps> = ({
   };
   
   // Generate days for the week
-  const generateDays = () => {
-    const days = [];
+  const generateDays = (): DayData[] => {
+    const days: DayData[] = [];
     const start = new Date(startDate);
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
+    // Generate days for the current week
     for (let i = 0; i < 7; i++) {
       const currentDate = new Date(start);
       currentDate.setDate(start.getDate() + i);
+      
       const dateStr = currentDate.toISOString().split('T')[0];
+      const weekdayIndex = currentDate.getDay(); // 0 for Sunday, 1 for Monday, etc.
       
       days.push({
         date: dateStr,
         day: currentDate.getDate(),
+        weekday: dayNames[weekdayIndex],
         hasEntry: hasEntry(dateStr),
         isHighlight: isHighlight(dateStr),
         isToday: isToday(dateStr)
@@ -130,8 +141,9 @@ const WeekCalendar: React.FC<WeekCalendarProps> = ({
     <CalendarContainer>
       <CalendarHeader>Week at a Glance</CalendarHeader>
       <WeekGrid>
-        {dayNames.map((name) => (
-          <DayName key={name}>{name}</DayName>
+        {/* Render the day names from the calculated days */}
+        {days.map((day) => (
+          <DayName key={`day-name-${day.date}`}>{day.weekday}</DayName>
         ))}
         
         {days.map((day) => (
