@@ -4,19 +4,8 @@ import { Standup, CreateStandupDto, UpdateStandupDto } from '../redux/standups/t
 // Get API URL with fallback mechanism
 let API_URL: string;
 
-// For production build
-if (typeof window !== 'undefined' && window.location) {
-  // In browser environment - derive API URL from current location
-  if (window.location.hostname === 'localhost') {
-    API_URL = 'http://localhost:4000/api';
-  } else {
-    // For other production environments
-    API_URL = 'https://be-devmemo.onrender.com/api';
-  }
-} else {
-  // Fallback for non-browser environment or during server-side rendering
-  API_URL = 'https://be-devmemo.onrender.com/api';
-}
+API_URL = 'https://be-devmemo.onrender.com/api'; //'http://localhost:4000/api';
+
 
 console.log('Using API URL:', API_URL);
 
