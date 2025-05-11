@@ -4,7 +4,7 @@ This is the frontend for the StandupSync application, a tool that helps develope
 
 ## Live Demo
 
-Experience StandupSync in action at [https://standupsync.onrender.com](https://standupsync.onrender.com)
+Experience StandupSync in action at [https://fe-devmemo.onrender.com](https://fe-devmemo.onrender.com)
 
 ## Technologies Used
 
