@@ -2,6 +2,10 @@
 
 This is the frontend for the StandupSync application, a tool that helps developers log, reflect, and recall their daily standups.
 
+## Live Demo
+
+Experience StandupSync in action at [https://standupsync.onrender.com](https://standupsync.onrender.com)
+
 ## Technologies Used
 
 - **React** - UI library
@@ -84,7 +88,9 @@ The frontend has comprehensive tests for components, Redux state management, and
 
 ## Connecting to Backend
 
-By default, the frontend expects the backend to be running at `http://localhost:4000`. You can modify the API base URL in `src/services/api.ts` if needed.
+The live demo connects to the backend API at [https://be-devmemo.onrender.com/api](https://be-devmemo.onrender.com/api).
+
+For local development, the frontend expects the backend to be running at `http://localhost:4000`. You can modify the API base URL in `src/services/api.ts` if needed.
 
 ## Contributing
 
