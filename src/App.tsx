@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import styled from 'styled-components';
 import Header from './components/layout/Header';
@@ -23,12 +23,22 @@ const AppContainer = styled.div`
 const MainContainer = styled.div`
   display: flex;
   flex: 1;
+  position: relative;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
 `;
 
 const ContentContainer = styled.main`
   flex: 1;
   padding: 2rem;
   overflow-y: auto;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+    width: 100%;
+  }
 `;
 
 const App: React.FC = () => {

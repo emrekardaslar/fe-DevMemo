@@ -12,6 +12,12 @@
   --success-color: #2ecc71;
   --warning-color: #f39c12;
   --highlight-color: #fdedd0;
+  
+  /* Breakpoints */
+  --mobile: 480px;
+  --tablet: 768px;
+  --desktop: 1024px;
+  --large-desktop: 1200px;
 }
 
 * {
@@ -20,12 +26,21 @@
   padding: 0;
 }
 
+html {
+  font-size: 16px;
+  
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   font-size: 16px;
   line-height: 1.5;
   color: var(--text-color);
   background-color: var(--background-color);
+  overflow-x: hidden;
 }
 
 a {
@@ -46,6 +61,10 @@ button {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 1rem;
+  
+  @media (max-width: 768px) {
+    padding: 0 0.75rem;
+  }
 }
 
 .card {
@@ -54,6 +73,11 @@ button {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
 }
 
 .highlight {
@@ -78,6 +102,10 @@ button {
   border: 1px solid var(--border-color);
   border-radius: 4px;
   background-color: var(--card-background);
+  
+  @media (max-width: 768px) {
+    padding: 0.5rem;
+  }
 }
 
 .form-control:focus {
@@ -94,6 +122,11 @@ button {
   border-radius: 4px;
   border: none;
   transition: background-color 0.2s, box-shadow 0.2s;
+  
+  @media (max-width: 768px) {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
 }
 
 .btn-primary {
@@ -137,4 +170,95 @@ button {
   color: var(--success-color);
   font-size: 0.875rem;
   margin-top: 0.25rem;
+}
+
+/* Responsive Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.5rem;
+  
+  @media (max-width: 768px) {
+    gap: 1rem;
+  }
+}
+
+.col-12 { grid-column: span 12; }
+.col-11 { grid-column: span 11; }
+.col-10 { grid-column: span 10; }
+.col-9 { grid-column: span 9; }
+.col-8 { grid-column: span 8; }
+.col-7 { grid-column: span 7; }
+.col-6 { grid-column: span 6; }
+.col-5 { grid-column: span 5; }
+.col-4 { grid-column: span 4; }
+.col-3 { grid-column: span 3; }
+.col-2 { grid-column: span 2; }
+.col-1 { grid-column: span 1; }
+
+@media (max-width: 768px) {
+  .col-md-12 { grid-column: span 12; }
+  .col-md-11 { grid-column: span 11; }
+  .col-md-10 { grid-column: span 10; }
+  .col-md-9 { grid-column: span 9; }
+  .col-md-8 { grid-column: span 8; }
+  .col-md-7 { grid-column: span 7; }
+  .col-md-6 { grid-column: span 6; }
+  .col-md-5 { grid-column: span 5; }
+  .col-md-4 { grid-column: span 4; }
+  .col-md-3 { grid-column: span 3; }
+  .col-md-2 { grid-column: span 2; }
+  .col-md-1 { grid-column: span 1; }
+}
+
+@media (max-width: 480px) {
+  .col-sm-12 { grid-column: span 12; }
+  .col-sm-11 { grid-column: span 11; }
+  .col-sm-10 { grid-column: span 10; }
+  .col-sm-9 { grid-column: span 9; }
+  .col-sm-8 { grid-column: span 8; }
+  .col-sm-7 { grid-column: span 7; }
+  .col-sm-6 { grid-column: span 6; }
+  .col-sm-5 { grid-column: span 5; }
+  .col-sm-4 { grid-column: span 4; }
+  .col-sm-3 { grid-column: span 3; }
+  .col-sm-2 { grid-column: span 2; }
+  .col-sm-1 { grid-column: span 1; }
+}
+
+/* Responsive utilities */
+.d-none { display: none !important; }
+.d-block { display: block !important; }
+.d-flex { display: flex !important; }
+.d-grid { display: grid !important; }
+
+@media (max-width: 768px) {
+  .d-md-none { display: none !important; }
+  .d-md-block { display: block !important; }
+  .d-md-flex { display: flex !important; }
+  .d-md-grid { display: grid !important; }
+}
+
+@media (max-width: 480px) {
+  .d-sm-none { display: none !important; }
+  .d-sm-block { display: block !important; }
+  .d-sm-flex { display: flex !important; }
+  .d-sm-grid { display: grid !important; }
+}
+
+/* Responsive text utilities */
+.text-center { text-align: center !important; }
+.text-left { text-align: left !important; }
+.text-right { text-align: right !important; }
+
+@media (max-width: 768px) {
+  .text-md-center { text-align: center !important; }
+  .text-md-left { text-align: left !important; }
+  .text-md-right { text-align: right !important; }
+}
+
+@media (max-width: 480px) {
+  .text-sm-center { text-align: center !important; }
+  .text-sm-left { text-align: left !important; }
+  .text-sm-right { text-align: right !important; }
 } 
