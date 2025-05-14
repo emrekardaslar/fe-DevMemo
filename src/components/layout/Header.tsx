@@ -39,12 +39,13 @@ const LogoIcon = styled.span`
   margin-right: 0.5rem;
 `;
 
-const Nav = styled.nav<{ isOpen: boolean }>`
+// Using a div instead of nav to avoid isOpen prop warning
+const StyledNav = styled.div<{ $isOpen: boolean }>`
   display: flex;
   gap: 1.5rem;
 
   @media (max-width: 768px) {
-    display: ${({ isOpen }) => (isOpen ? 'flex' : 'none')};
+    display: ${({ $isOpen }) => ($isOpen ? 'flex' : 'none')};
     position: absolute;
     top: 100%;
     right: 0;
@@ -130,10 +131,10 @@ const Header: React.FC = () => {
           {menuOpen ? '✕' : '☰'}
         </MenuButton>
         <div ref={menuRef}>
-          <Nav isOpen={menuOpen}>
+          <StyledNav $isOpen={menuOpen} role="navigation">
             <NavLink to="/standups/new" onClick={() => setMenuOpen(false)}>New Standup</NavLink>
             <NavLink to="/query" onClick={() => setMenuOpen(false)}>Query</NavLink>
-          </Nav>
+          </StyledNav>
         </div>
       </NavContainer>
     </HeaderContainer>

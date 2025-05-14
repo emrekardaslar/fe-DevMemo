@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import styled from 'styled-components';
 
 interface SidebarProps {
-  isVisible: boolean;
+  $isVisible: boolean;
 }
 
 const SidebarContainer = styled.aside<SidebarProps>`
@@ -19,8 +19,8 @@ const SidebarContainer = styled.aside<SidebarProps>`
     left: 0;
     height: 100vh;
     z-index: 1000;
-    transform: ${({ isVisible }) => isVisible ? 'translateX(0)' : 'translateX(-100%)'};
-    box-shadow: ${({ isVisible }) => isVisible ? '0 0 10px rgba(0, 0, 0, 0.1)' : 'none'};
+    transform: ${({ $isVisible }) => $isVisible ? 'translateX(0)' : 'translateX(-100%)'};
+    box-shadow: ${({ $isVisible }) => $isVisible ? '0 0 10px rgba(0, 0, 0, 0.1)' : 'none'};
     padding-top: 4rem;
   }
 `;
@@ -86,7 +86,7 @@ const Overlay = styled.div<SidebarProps>`
   display: none;
   
   @media (max-width: 768px) {
-    display: ${({ isVisible }) => isVisible ? 'block' : 'none'};
+    display: ${({ $isVisible }) => $isVisible ? 'block' : 'none'};
     position: fixed;
     top: 0;
     left: 0;
@@ -131,8 +131,8 @@ const Sidebar: React.FC = () => {
 
   return (
     <>
-      <Overlay isVisible={sidebarVisible} onClick={closeSidebar} />
-      <SidebarContainer isVisible={sidebarVisible}>
+      <Overlay $isVisible={sidebarVisible} onClick={closeSidebar} />
+      <SidebarContainer $isVisible={sidebarVisible}>
         <NavList>
           <NavItem>
             <StyledNavLink to="/" onClick={closeSidebar}>
