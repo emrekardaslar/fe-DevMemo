@@ -4,10 +4,34 @@ import { Standup, CreateStandupDto, UpdateStandupDto } from '../redux/standups/t
 // Get API URL with fallback mechanism
 let API_URL: string;
 
-API_URL = 'https://be-devmemo.onrender.com/api'; //'http://localhost:4000/api';
+// Type declaration for window
+declare global {
+  interface Window {
+    __REACT_APP_API_URL?: string;
+  }
+}
 
+// Determine if we're in a browser environment
+const isBrowser = typeof window !== 'undefined';
 
-console.log('Using API URL:', API_URL);
+// Use injected URL or default to local development
+if (isBrowser && window.__REACT_APP_API_URL) {
+  API_URL = window.__REACT_APP_API_URL;
+  console.log('Using API URL from window.__REACT_APP_API_URL:', API_URL);
+} else {
+  // Fallback if not in browser or URL not injected
+  API_URL = 'http://localhost:4000/api';
+  console.log('Using fallback API URL:', API_URL);
+  
+  // Add warning in development
+  if (isBrowser) {
+    console.warn(
+      'Warning: window.__REACT_APP_API_URL is not set. Using fallback URL. ' +
+      'This might cause issues connecting to the API. ' +
+      'Make sure webpack is properly configured to inject the API URL.'
+    );
+  }
+}
 
 // Create axios instance
 const api = axios.create({
@@ -136,19 +160,13 @@ export const standupAPI = {
     try {
       console.log('API: Toggling highlight for date:', date);
       
-      // Make the API call with explicit URL and headers
-      const url = `${API_URL}/standups/${date}/highlight`;
-      console.log('API: Making PATCH request to:', url);
-      
-      // Include timestamp for debugging overlap issues
+      // Use the api instance instead of creating a new axios instance
+      // This ensures we use the same baseURL configuration
       const timestamp = new Date().toISOString();
       console.log(`API: Request started at ${timestamp}`);
       
-      const response = await axios({
-        method: 'PATCH',
-        url: url,
+      const response = await api.patch(`/standups/${date}/highlight`, null, {
         headers: {
-          'Content-Type': 'application/json',
           'X-Request-Time': timestamp
         }
       });

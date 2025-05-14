@@ -15,6 +15,23 @@
 
 4. Click "Create Static Site"
 
+## Environment Configuration
+
+The application is automatically configured to use different API URLs based on the environment:
+
+- **Development**: API at http://localhost:4000/api (local development)
+- **Production**: API at https://be-devmemo.onrender.com/api (Render deployment)
+
+The webpack configuration in `webpack.config.js` detects the environment and injects the appropriate API URL via a custom plugin. This URL is then made available to the application through `window.__REACT_APP_API_URL`.
+
+## Configuration Technical Details
+
+- The environment determination happens in `webpack.config.js` based on NODE_ENV
+- A custom InjectApiUrlPlugin adds a script tag to the HTML that sets `window.__REACT_APP_API_URL`
+- The services/api.ts file reads from window.__REACT_APP_API_URL to configure axios
+
+This approach avoids the "process is not defined" error that can occur when using process.env directly in client-side code.
+
 ## Key Files for Render
 
 These files are automatically copied to the `dist` directory during build:
@@ -25,9 +42,9 @@ These files are automatically copied to the `dist` directory during build:
 
 ## Important
 
-- The frontend is pre-configured to use the API at https://be-devmemo.onrender.com/api
-- The API_URL is hardcoded in the `services/api.ts` file
-- Render automatically serves static files - no need for additional packages
+- The frontend will automatically use https://be-devmemo.onrender.com/api when built for production
+- The API_URL is now dynamically set based on the NODE_ENV environment variable
+- No manual configuration is needed after deployment
 
 ## Troubleshooting
 
