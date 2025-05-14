@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -10,6 +10,8 @@ const HeaderContainer = styled.header`
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative; /* Ensure children can be positioned relative to this */
+  z-index: 110; /* Ensure header is above other elements */
 
   @media (max-width: 768px) {
     padding: 1rem;
@@ -83,12 +85,39 @@ const MenuButton = styled.button`
   }
 `;
 
+const NavContainer = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
 const Header: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
   };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuOpen && 
+        menuRef.current && 
+        buttonRef.current && 
+        !menuRef.current.contains(event.target as Node) && 
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
 
   return (
     <HeaderContainer>
@@ -96,13 +125,17 @@ const Header: React.FC = () => {
         <LogoIcon>📝</LogoIcon>
         StandupSync
       </Logo>
-      <MenuButton onClick={toggleMenu}>
-        {menuOpen ? '✕' : '☰'}
-      </MenuButton>
-      <Nav isOpen={menuOpen}>
-        <NavLink to="/standups/new" onClick={() => setMenuOpen(false)}>New Standup</NavLink>
-        <NavLink to="/query" onClick={() => setMenuOpen(false)}>Query</NavLink>
-      </Nav>
+      <NavContainer>
+        <MenuButton ref={buttonRef} onClick={toggleMenu} aria-expanded={menuOpen}>
+          {menuOpen ? '✕' : '☰'}
+        </MenuButton>
+        <div ref={menuRef}>
+          <Nav isOpen={menuOpen}>
+            <NavLink to="/standups/new" onClick={() => setMenuOpen(false)}>New Standup</NavLink>
+            <NavLink to="/query" onClick={() => setMenuOpen(false)}>Query</NavLink>
+          </Nav>
+        </div>
+      </NavContainer>
     </HeaderContainer>
   );
 };
