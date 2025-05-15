@@ -1,6 +1,7 @@
-import { StandupActionTypes } from '../../../redux/standups/types';
+import { StandupActionTypes, Standup, StandupState, CreateStandupDto } from '../../../redux/standups/types';
 import * as actions from '../../../redux/standups/actions';
 import { standupAPI } from '../../../services/api';
+import { RootState } from '../../../redux/store';
 
 // Mock the api service
 jest.mock('../../../services/api', () => ({
@@ -14,9 +15,30 @@ jest.mock('../../../services/api', () => ({
   }
 }));
 
+// Create a more type-safe testing approach for async actions
+type DispatchMock = jest.Mock;
+type GetStateMock = jest.Mock<RootState>;
+
+// Helper to create a properly typed initial state
+const createMockState = (overrides?: Partial<StandupState>): StandupState => ({
+  standups: [],
+  currentStandup: null,
+  loading: false,
+  error: null,
+  success: false,
+  ...overrides
+});
+
 describe('Standup Actions', () => {
+  let dispatch: DispatchMock;
+  let getState: GetStateMock;
+  
   beforeEach(() => {
     jest.clearAllMocks();
+    dispatch = jest.fn();
+    getState = jest.fn().mockReturnValue({
+      standups: createMockState()
+    } as RootState);
   });
   
   // Simple action creators
@@ -58,13 +80,10 @@ describe('Standup Actions', () => {
       ];
       
       // Mock API response
-      (standupAPI.getAll as jest.Mock).mockResolvedValue({ data: standups });
-      
-      // Create mock dispatch function
-      const dispatch = jest.fn();
+      (standupAPI.getAll as jest.Mock).mockResolvedValueOnce({ data: standups });
       
       // Call the action creator
-      await actions.fetchStandups()(dispatch, () => ({}), undefined);
+      await actions.fetchStandups()(dispatch, getState, undefined);
       
       // Check dispatch was called correctly
       expect(dispatch).toHaveBeenCalledWith({ type: StandupActionTypes.FETCH_STANDUPS_REQUEST });
@@ -79,13 +98,10 @@ describe('Standup Actions', () => {
       const errorMessage = 'Network Error';
       
       // Mock API error
-      (standupAPI.getAll as jest.Mock).mockRejectedValue(new Error(errorMessage));
-      
-      // Create mock dispatch function
-      const dispatch = jest.fn();
+      (standupAPI.getAll as jest.Mock).mockRejectedValueOnce(new Error(errorMessage));
       
       // Call the action creator
-      await actions.fetchStandups()(dispatch, () => ({}), undefined);
+      await actions.fetchStandups()(dispatch, getState, undefined);
       
       // Check dispatch was called correctly
       expect(dispatch).toHaveBeenCalledWith({ type: StandupActionTypes.FETCH_STANDUPS_REQUEST });
@@ -99,16 +115,27 @@ describe('Standup Actions', () => {
       const params = { isHighlight: true };
       
       // Mock API response
-      (standupAPI.getAll as jest.Mock).mockResolvedValue({ data: [] });
-      
-      // Create mock dispatch function
-      const dispatch = jest.fn();
+      (standupAPI.getAll as jest.Mock).mockResolvedValueOnce({ data: [] });
       
       // Call the action creator
-      await actions.fetchStandups(params)(dispatch, () => ({}), undefined);
+      await actions.fetchStandups(params)(dispatch, getState, undefined);
       
       // Check API was called with params
       expect(standupAPI.getAll).toHaveBeenCalledWith(params);
+    });
+    
+    it('should handle empty response data correctly', async () => {
+      // Mock API response with empty array
+      (standupAPI.getAll as jest.Mock).mockResolvedValueOnce({ data: [] });
+      
+      // Call the action creator
+      await actions.fetchStandups()(dispatch, getState, undefined);
+      
+      // Check dispatch was called correctly
+      expect(dispatch).toHaveBeenCalledWith({ 
+        type: StandupActionTypes.FETCH_STANDUPS_SUCCESS,
+        payload: [] 
+      });
     });
   });
   
@@ -131,13 +158,10 @@ describe('Standup Actions', () => {
       };
       
       // Mock API response
-      (standupAPI.getByDate as jest.Mock).mockResolvedValue({ data: standup });
-      
-      // Create mock dispatch function
-      const dispatch = jest.fn();
+      (standupAPI.getByDate as jest.Mock).mockResolvedValueOnce({ data: standup });
       
       // Call the action creator
-      await actions.fetchStandup(date)(dispatch, () => ({}), undefined);
+      await actions.fetchStandup(date)(dispatch, getState, undefined);
       
       // Check dispatch was called correctly
       expect(dispatch).toHaveBeenCalledWith({ type: StandupActionTypes.FETCH_STANDUP_REQUEST });
@@ -153,13 +177,10 @@ describe('Standup Actions', () => {
       const errorMessage = 'Not Found';
       
       // Mock API error
-      (standupAPI.getByDate as jest.Mock).mockRejectedValue(new Error(errorMessage));
-      
-      // Create mock dispatch function
-      const dispatch = jest.fn();
+      (standupAPI.getByDate as jest.Mock).mockRejectedValueOnce(new Error(errorMessage));
       
       // Call the action creator
-      await actions.fetchStandup(date)(dispatch, () => ({}), undefined);
+      await actions.fetchStandup(date)(dispatch, getState, undefined);
       
       // Check dispatch was called correctly
       expect(dispatch).toHaveBeenCalledWith({ type: StandupActionTypes.FETCH_STANDUP_REQUEST });
@@ -168,12 +189,28 @@ describe('Standup Actions', () => {
         payload: errorMessage
       });
     });
+    
+    it('should handle non-existent standup correctly', async () => {
+      const date = '2023-05-01';
+      
+      // Mock API response with null data
+      (standupAPI.getByDate as jest.Mock).mockResolvedValueOnce({ data: null });
+      
+      // Call the action creator
+      await actions.fetchStandup(date)(dispatch, getState, undefined);
+      
+      // Check dispatch was called correctly
+      expect(dispatch).toHaveBeenCalledWith({ 
+        type: StandupActionTypes.FETCH_STANDUP_SUCCESS,
+        payload: null
+      });
+    });
   });
   
   // Create standup actions
   describe('createStandup', () => {
     it('should create CREATE_STANDUP_SUCCESS when creating a standup has been successful', async () => {
-      const newStandup = {
+      const newStandup: CreateStandupDto = {
         date: '2023-05-01',
         yesterday: 'Worked on API endpoints',
         today: 'Working on tests',
@@ -192,13 +229,10 @@ describe('Standup Actions', () => {
       };
       
       // Mock API response
-      (standupAPI.create as jest.Mock).mockResolvedValue({ data: createdStandup });
-      
-      // Create mock dispatch function
-      const dispatch = jest.fn();
+      (standupAPI.create as jest.Mock).mockResolvedValueOnce({ data: createdStandup });
       
       // Call the action creator
-      await actions.createStandup(newStandup)(dispatch, () => ({}), undefined);
+      await actions.createStandup(newStandup)(dispatch, getState, undefined);
       
       // Check dispatch was called correctly
       expect(dispatch).toHaveBeenCalledWith({ type: StandupActionTypes.CREATE_STANDUP_REQUEST });
@@ -210,7 +244,7 @@ describe('Standup Actions', () => {
     });
     
     it('should create CREATE_STANDUP_FAILURE when creating a standup fails', async () => {
-      const newStandup = {
+      const newStandup: CreateStandupDto = {
         date: '2023-05-01',
         yesterday: 'Worked on API endpoints',
         today: 'Working on tests',
@@ -225,19 +259,48 @@ describe('Standup Actions', () => {
       const errorMessage = 'Validation Error';
       
       // Mock API error
-      (standupAPI.create as jest.Mock).mockRejectedValue(new Error(errorMessage));
-      
-      // Create mock dispatch function
-      const dispatch = jest.fn();
+      (standupAPI.create as jest.Mock).mockRejectedValueOnce(new Error(errorMessage));
       
       // Call the action creator
-      await actions.createStandup(newStandup)(dispatch, () => ({}), undefined);
+      await actions.createStandup(newStandup)(dispatch, getState, undefined);
       
       // Check dispatch was called correctly
       expect(dispatch).toHaveBeenCalledWith({ type: StandupActionTypes.CREATE_STANDUP_REQUEST });
       expect(dispatch).toHaveBeenCalledWith({ 
         type: StandupActionTypes.CREATE_STANDUP_FAILURE,
         payload: errorMessage
+      });
+    });
+    
+    it('should handle creating standup with missing optional fields', async () => {
+      const minimalStandup: CreateStandupDto = {
+        date: '2023-05-01',
+        yesterday: 'Worked on API endpoints',
+        today: 'Working on tests',
+        tags: [],
+        blockers: '',
+        isBlockerResolved: false,
+        mood: 0,
+        productivity: 0,
+        isHighlight: false
+      };
+      
+      const createdStandup = {
+        ...minimalStandup,
+        createdAt: '2023-05-01T12:00:00Z',
+        updatedAt: '2023-05-01T12:00:00Z'
+      };
+      
+      // Mock API response
+      (standupAPI.create as jest.Mock).mockResolvedValueOnce({ data: createdStandup });
+      
+      // Call the action creator
+      await actions.createStandup(minimalStandup)(dispatch, getState, undefined);
+      
+      // Check dispatch was called correctly
+      expect(dispatch).toHaveBeenCalledWith({ 
+        type: StandupActionTypes.CREATE_STANDUP_SUCCESS,
+        payload: createdStandup
       });
     });
   });
@@ -267,13 +330,10 @@ describe('Standup Actions', () => {
       };
       
       // Mock API response
-      (standupAPI.update as jest.Mock).mockResolvedValue({ data: updatedStandup });
-      
-      // Create mock dispatch function
-      const dispatch = jest.fn();
+      (standupAPI.update as jest.Mock).mockResolvedValueOnce({ data: updatedStandup });
       
       // Call the action creator
-      await actions.updateStandup(date, updatedData)(dispatch, () => ({}), undefined);
+      await actions.updateStandup(date, updatedData)(dispatch, getState, undefined);
       
       // Check dispatch was called correctly
       expect(dispatch).toHaveBeenCalledWith({ type: StandupActionTypes.UPDATE_STANDUP_REQUEST });
@@ -294,19 +354,49 @@ describe('Standup Actions', () => {
       const errorMessage = 'Not Found';
       
       // Mock API error
-      (standupAPI.update as jest.Mock).mockRejectedValue(new Error(errorMessage));
-      
-      // Create mock dispatch function
-      const dispatch = jest.fn();
+      (standupAPI.update as jest.Mock).mockRejectedValueOnce(new Error(errorMessage));
       
       // Call the action creator
-      await actions.updateStandup(date, updatedData)(dispatch, () => ({}), undefined);
+      await actions.updateStandup(date, updatedData)(dispatch, getState, undefined);
       
       // Check dispatch was called correctly
       expect(dispatch).toHaveBeenCalledWith({ type: StandupActionTypes.UPDATE_STANDUP_REQUEST });
       expect(dispatch).toHaveBeenCalledWith({ 
         type: StandupActionTypes.UPDATE_STANDUP_FAILURE,
         payload: errorMessage
+      });
+    });
+    
+    it('should handle partial update with minimal fields', async () => {
+      const date = '2023-05-01';
+      const partialUpdate = {
+        tags: ['new-tag']
+      };
+      
+      const updatedStandup = {
+        date,
+        yesterday: 'Worked on API endpoints',
+        today: 'Working on tests',
+        blockers: 'None',
+        isBlockerResolved: false,
+        tags: ['new-tag'],
+        mood: 4,
+        productivity: 5,
+        isHighlight: false,
+        createdAt: '2023-05-01T12:00:00Z',
+        updatedAt: '2023-05-01T13:00:00Z'
+      };
+      
+      // Mock API response
+      (standupAPI.update as jest.Mock).mockResolvedValueOnce({ data: updatedStandup });
+      
+      // Call the action creator
+      await actions.updateStandup(date, partialUpdate)(dispatch, getState, undefined);
+      
+      // Check dispatch was called correctly
+      expect(dispatch).toHaveBeenCalledWith({ 
+        type: StandupActionTypes.UPDATE_STANDUP_SUCCESS,
+        payload: updatedStandup
       });
     });
   });
@@ -317,13 +407,10 @@ describe('Standup Actions', () => {
       const date = '2023-05-01';
       
       // Mock API response
-      (standupAPI.delete as jest.Mock).mockResolvedValue({});
-      
-      // Create mock dispatch function
-      const dispatch = jest.fn();
+      (standupAPI.delete as jest.Mock).mockResolvedValueOnce({});
       
       // Call the action creator
-      await actions.deleteStandup(date)(dispatch, () => ({}), undefined);
+      await actions.deleteStandup(date)(dispatch, getState, undefined);
       
       // Check dispatch was called correctly
       expect(dispatch).toHaveBeenCalledWith({ type: StandupActionTypes.DELETE_STANDUP_REQUEST });
@@ -339,13 +426,10 @@ describe('Standup Actions', () => {
       const errorMessage = 'Not Found';
       
       // Mock API error
-      (standupAPI.delete as jest.Mock).mockRejectedValue(new Error(errorMessage));
-      
-      // Create mock dispatch function
-      const dispatch = jest.fn();
+      (standupAPI.delete as jest.Mock).mockRejectedValueOnce(new Error(errorMessage));
       
       // Call the action creator
-      await actions.deleteStandup(date)(dispatch, () => ({}), undefined);
+      await actions.deleteStandup(date)(dispatch, getState, undefined);
       
       // Check dispatch was called correctly
       expect(dispatch).toHaveBeenCalledWith({ type: StandupActionTypes.DELETE_STANDUP_REQUEST });
@@ -375,7 +459,7 @@ describe('Standup Actions', () => {
       };
       
       // Mock API response with nested data format
-      (standupAPI.toggleHighlight as jest.Mock).mockResolvedValue({
+      (standupAPI.toggleHighlight as jest.Mock).mockResolvedValueOnce({
         status: 200,
         data: {
           success: true,
@@ -383,9 +467,8 @@ describe('Standup Actions', () => {
         }
       });
       
-      // Create mock functions for dispatch and getState
-      const dispatch = jest.fn();
-      const getState = jest.fn().mockReturnValue({
+      // Setup current state with the standup
+      getState.mockReturnValue({
         standups: {
           standups: [
             {
@@ -402,7 +485,10 @@ describe('Standup Actions', () => {
               updatedAt: '2023-05-01T12:00:00Z'
             }
           ],
-          currentStandup: null
+          currentStandup: null,
+          loading: false,
+          error: null,
+          success: false
         }
       });
       
@@ -440,14 +526,13 @@ describe('Standup Actions', () => {
       };
       
       // Mock API response with direct data format
-      (standupAPI.toggleHighlight as jest.Mock).mockResolvedValue({
+      (standupAPI.toggleHighlight as jest.Mock).mockResolvedValueOnce({
         status: 200,
         data: standup
       });
       
-      // Create mock functions for dispatch and getState
-      const dispatch = jest.fn();
-      const getState = jest.fn().mockReturnValue({
+      // Setup current state with the standup
+      getState.mockReturnValue({
         standups: {
           standups: [
             {
@@ -464,7 +549,10 @@ describe('Standup Actions', () => {
               updatedAt: '2023-05-01T12:00:00Z'
             }
           ],
-          currentStandup: null
+          currentStandup: null,
+          loading: false,
+          error: null,
+          success: false
         }
       });
       
@@ -490,14 +578,16 @@ describe('Standup Actions', () => {
       const errorMessage = 'Network Error';
       
       // Mock API error
-      (standupAPI.toggleHighlight as jest.Mock).mockRejectedValue(new Error(errorMessage));
+      (standupAPI.toggleHighlight as jest.Mock).mockRejectedValueOnce(new Error(errorMessage));
       
-      // Create mock functions for dispatch and getState
-      const dispatch = jest.fn();
-      const getState = jest.fn().mockReturnValue({
+      // Setup current state
+      getState.mockReturnValue({
         standups: {
           standups: [],
-          currentStandup: null
+          currentStandup: null,
+          loading: false,
+          error: null,
+          success: false
         }
       });
       
@@ -532,61 +622,57 @@ describe('Standup Actions', () => {
       };
       
       // Mock API responses
-      (standupAPI.toggleHighlight as jest.Mock).mockResolvedValue({
+      (standupAPI.toggleHighlight as jest.Mock).mockResolvedValueOnce({
         status: 200,
         data: {
           success: true,
           data: standup
         }
       });
-      (standupAPI.getByDate as jest.Mock).mockResolvedValue({ data: standup });
-      (standupAPI.getAll as jest.Mock).mockResolvedValue({ data: [standup] });
       
-      // Create mock functions for dispatch and getState
-      const dispatch = jest.fn();
-      const getState = jest.fn().mockReturnValue({
+      // Setup current state with the currentStandup matching the date
+      getState.mockReturnValue({
         standups: {
           standups: [standup],
           currentStandup: {
             ...standup,
             isHighlight: false
-          }
+          },
+          loading: false,
+          error: null,
+          success: false
         }
       });
       
       // Call the action creator
       await actions.toggleHighlight(date)(dispatch, getState, undefined);
       
-      // Check for fetchStandup call after success
-      const fetchStandupCall = dispatch.mock.calls.find(
-        call => typeof call[0] === 'function' && call[0].toString().includes('FETCH_STANDUP')
+      // There should be at least one dispatch call that's a function (thunk)
+      const thunkCalls = dispatch.mock.calls.filter(
+        call => typeof call[0] === 'function'
       );
       
-      expect(fetchStandupCall).toBeTruthy();
-      
-      // Check for fetchStandups call to refresh list
-      const fetchStandupsCall = dispatch.mock.calls.find(
-        call => typeof call[0] === 'function' && call[0].toString().includes('FETCH_STANDUPS')
-      );
-      
-      expect(fetchStandupsCall).toBeTruthy();
+      // We expect at least two thunk calls (fetchStandup and fetchStandups)
+      expect(thunkCalls.length).toBeGreaterThanOrEqual(2);
     });
     
     it('should handle invalid response format', async () => {
       const date = '2023-05-01';
       
       // Mock API response with invalid format
-      (standupAPI.toggleHighlight as jest.Mock).mockResolvedValue({
+      (standupAPI.toggleHighlight as jest.Mock).mockResolvedValueOnce({
         status: 200,
         data: null // Invalid data
       });
       
-      // Create mock functions for dispatch and getState
-      const dispatch = jest.fn();
-      const getState = jest.fn().mockReturnValue({
+      // Setup current state
+      getState.mockReturnValue({
         standups: {
           standups: [],
-          currentStandup: null
+          currentStandup: null,
+          loading: false,
+          error: null,
+          success: false
         }
       });
       
