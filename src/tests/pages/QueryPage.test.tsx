@@ -1,7 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { queryAPI } from '../../services/api';
+import { queryAPI, standupAPI } from '../../services/api';
+import { BrowserRouter } from 'react-router-dom';
 
 // Mock the api services
 jest.mock('../../services/api', () => ({
@@ -19,6 +20,7 @@ const SimpleQueryComponent = () => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<any>(null);
+  const [rawResponse, setRawResponse] = React.useState<any>(null);
   
   // Sample query suggestions
   const suggestions = [
@@ -33,6 +35,7 @@ const SimpleQueryComponent = () => {
     
     setLoading(true);
     setError(null);
+    setRawResponse(null);
     
     try {
       // Save to history
@@ -43,7 +46,17 @@ const SimpleQueryComponent = () => {
       
       // Call API
       const response = await queryAPI.processQuery(query);
-      setResult(response);
+      setRawResponse(response);
+      
+      // Handle nested response formats
+      if (response.data && response.data.success !== undefined) {
+        setResult({ 
+          answer: `Results for: "${query}"`,
+          data: response.data.data
+        });
+      } else {
+        setResult(response.data);
+      }
     } catch (err) {
       setError('An error occurred processing your query. Please try again.');
     } finally {
@@ -53,6 +66,8 @@ const SimpleQueryComponent = () => {
   
   const handleSuggestedQuery = (suggestedQuery: string) => {
     setQuery(suggestedQuery);
+    setResult(null);
+    setError(null);
   };
   
   const clearQuery = () => {
@@ -103,15 +118,31 @@ const SimpleQueryComponent = () => {
       
       {error && <div data-testid="error">{error}</div>}
       
+      {rawResponse && (
+        <div data-testid="raw-response">
+          <details>
+            <summary>Debug: Raw Response</summary>
+            <pre>{JSON.stringify(rawResponse, null, 2)}</pre>
+          </details>
+        </div>
+      )}
+      
       {!loading && !error && result && (
         <div data-testid="results">
           <h2>Results</h2>
           <p>"{query}"</p>
-          {result.data && result.data.answer && <div>{result.data.answer}</div>}
+          {result.answer && <div data-testid="answer">{result.answer}</div>}
+          {result.message && <div data-testid="message">{result.message}</div>}
+          {result.data && <div data-testid="data">Data available</div>}
         </div>
       )}
     </div>
   );
+};
+
+// Wrap component with router for tests that need Link
+const renderWithRouter = (component: React.ReactNode) => {
+  return render(<BrowserRouter>{component}</BrowserRouter>);
 };
 
 // Mock local storage
@@ -198,6 +229,66 @@ describe('Query Functionality', () => {
     
     // Check for loading state
     expect(screen.getByTestId('loading')).toBeInTheDocument();
+  });
+
+  it('should handle standard response format', async () => {
+    // Mock a successful API call with standard format
+    (queryAPI.processQuery as jest.Mock).mockResolvedValueOnce({
+      status: 200,
+      data: { 
+        answer: 'Here are the results for your query',
+        data: { 
+          topTags: [{ tag: 'frontend', count: 5 }],
+          period: 'Last week'
+        }
+      }
+    });
+    
+    render(<SimpleQueryComponent />);
+    
+    // Type and submit
+    const input = screen.getByTestId('query-input');
+    fireEvent.change(input, { target: { value: 'What did I do last week?' } });
+    
+    const form = screen.getByTestId('query-form');
+    fireEvent.submit(form);
+    
+    // Wait for results
+    await waitFor(() => {
+      expect(screen.getByTestId('results')).toBeInTheDocument();
+      expect(screen.getByTestId('answer')).toBeInTheDocument();
+      expect(screen.getByTestId('data')).toBeInTheDocument();
+    });
+  });
+
+  it('should handle nested response format', async () => {
+    // Mock a successful API call with nested format
+    (queryAPI.processQuery as jest.Mock).mockResolvedValueOnce({
+      status: 200,
+      data: { 
+        success: true,
+        data: { 
+          answer: 'Here are the results',
+          topTags: [{ tag: 'frontend', count: 5 }],
+          period: 'Last week'
+        }
+      }
+    });
+    
+    render(<SimpleQueryComponent />);
+    
+    // Type and submit
+    const input = screen.getByTestId('query-input');
+    fireEvent.change(input, { target: { value: 'What did I do last week?' } });
+    
+    const form = screen.getByTestId('query-form');
+    fireEvent.submit(form);
+    
+    // Wait for results
+    await waitFor(() => {
+      expect(screen.getByTestId('results')).toBeInTheDocument();
+      expect(screen.getByTestId('answer')).toBeInTheDocument();
+    });
   });
 
   it('should save query to history when submitted', async () => {
