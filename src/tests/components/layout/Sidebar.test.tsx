@@ -55,9 +55,10 @@ describe('Sidebar Component', () => {
   it('applies correct styling to the sidebar', () => {
     const { container } = renderWithRouter(<Sidebar />);
     
-    // Check the sidebar element has the correct tag
-    const sidebarElement = container.firstChild;
-    expect(sidebarElement?.nodeName).toBe('ASIDE');
+    // The firstChild is a fragment containing Overlay and SidebarContainer
+    // So we need to look for the aside tag specifically
+    const sidebarElement = container.querySelector('aside');
+    expect(sidebarElement).toBeInTheDocument();
     
     // Check the list is unstyled (no bullets)
     const listElement = container.querySelector('ul');
