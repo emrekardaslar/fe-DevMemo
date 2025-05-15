@@ -103,5 +103,4 @@ If you'd like to contribute to the frontend:
 
 ## Related
 
-- [Backend README](../backend/README.md) - Information about the backend
-- [Main Project README](../README.md) - Overall project information 
+- [Backend README](https://github.com/emrekardaslar/be-devmemo/blob/main/README.md) - Information about the backend
