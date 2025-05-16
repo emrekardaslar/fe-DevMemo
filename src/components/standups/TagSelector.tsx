@@ -90,10 +90,10 @@ const SuggestionsList = styled.ul`
   list-style: none;
 `;
 
-const SuggestionItem = styled.li<{ isActive: boolean }>`
+const SuggestionItem = styled.li<{ 'data-active': boolean }>`
   padding: 0.75rem 1rem;
   cursor: pointer;
-  background-color: ${props => props.isActive ? 'rgba(52, 152, 219, 0.1)' : 'transparent'};
+  background-color: ${props => props['data-active'] ? 'rgba(52, 152, 219, 0.1)' : 'transparent'};
   
   &:hover {
     background-color: rgba(52, 152, 219, 0.1);
@@ -312,7 +312,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({ selectedTags, onTagsChange })
             {suggestions.map(({ tag, count }, index) => (
               <SuggestionItem
                 key={tag}
-                isActive={index === activeSuggestionIndex}
+                data-active={index === activeSuggestionIndex}
                 onClick={() => handleSelectSuggestion(tag)}
                 onMouseDown={handleSuggestionMouseDown}
                 onMouseEnter={() => setActiveSuggestionIndex(index)}
