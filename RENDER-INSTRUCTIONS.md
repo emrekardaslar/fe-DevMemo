@@ -10,7 +10,7 @@
    - **Name**: fe-devmemo (or your preferred name)
    - **Branch**: main (or your deployment branch)
    - **Root Directory**: frontend
-   - **Build Command**: `npm install --legacy-peer-deps && npm run build`
+   - **Build Command**: `npm install && npm run build`
    - **Publish Directory**: dist
 
 4. Click "Create Static Site"
