@@ -8,39 +8,41 @@ Experience StandupSync in action at [https://fe-devmemo.onrender.com](https://fe
 
 ## Technologies Used
 
-- **React** - UI library
+- **React 18** - UI library
 - **TypeScript** - Type-safe JavaScript
-- **Redux** - State management
-- **React Router** - Navigation
+- **Redux Toolkit** - State management
+- **React Router v7** - Navigation
 - **Styled Components** - Styling
-- **Jest/React Testing Library** - Testing
+- **Vite** - Build tool and development server
+- **Vitest** - Testing framework
+- **Recharts** - Data visualization
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v16 or higher)
 - npm or yarn
 
 ### Installation
 
 1. Clone the repository (if not already done):
-   ```
+   ```bash
    git clone https://github.com/yourusername/StandupSync.git
    cd StandupSync/frontend
    ```
 
 2. Install dependencies:
-   ```
+   ```bash
    npm install
    ```
 
 3. Start the development server:
-   ```
-   npm start
+   ```bash
+   npm run dev
    ```
 
-The application will be available at http://localhost:8080
+The application will be available at http://localhost:3000
 
 ## Project Structure
 
@@ -61,17 +63,18 @@ frontend/
 │   └── index.tsx           # Entry point
 ├── public/                 # Public assets
 ├── package.json            # Project dependencies
-├── tsconfig.json           # TypeScript configuration
-└── webpack.config.js       # Webpack configuration
+├── tsconfig.json          # TypeScript configuration
+└── vite.config.js         # Vite configuration
 ```
 
 ## Available Scripts
 
-- `npm start` - Start the development server
-- `npm build` - Build for production
+- `npm run dev` - Start the development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build locally
 - `npm test` - Run tests
-- `npm test:watch` - Run tests in watch mode
-- `npm test:coverage` - Generate test coverage report
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Generate test coverage report
 
 ## Features
 
@@ -81,16 +84,26 @@ frontend/
 - **Mood & Productivity Tracking** - Track your mood and productivity over time
 - **Natural Language Queries** - Search your entries using natural language
 - **Highlight Important Entries** - Mark important entries for quick reference
+- **Weekly & Monthly Summaries** - Get insights into your work patterns
+- **Blocker Analysis** - Track and analyze blockers over time
+
+## Environment Variables
+
+The application uses Vite's environment variable system. Create a `.env` file in the `frontend` directory:
+
+```env
+VITE_API_URL=http://localhost:4000/api  # For development
+```
+
+For production, the API URL is automatically set to `https://be-devmemo.onrender.com/api`.
 
 ## Testing
 
-The frontend has comprehensive tests for components, Redux state management, and utilities. See [TESTING.md](../memory-bank/TESTING.md) for more details on testing.
+The frontend uses Vitest for testing. See [TESTING.md](../memory-bank/TESTING.md) for more details on testing strategy and guidelines.
 
-## Connecting to Backend
+## Deployment
 
-The live demo connects to the backend API at [https://be-devmemo.onrender.com/api](https://be-devmemo.onrender.com/api).
-
-For local development, the frontend expects the backend to be running at `http://localhost:4000`. You can modify the API base URL in `src/services/api.ts` if needed.
+The application is configured for deployment on Render.com. See [RENDER-INSTRUCTIONS.md](./RENDER-INSTRUCTIONS.md) for detailed deployment instructions.
 
 ## Contributing
 
@@ -104,15 +117,3 @@ If you'd like to contribute to the frontend:
 ## Related
 
 - [Backend README](https://github.com/emrekardaslar/be-devmemo/blob/main/README.md) - Information about the backend
-
-## Environment Variables with Vite
-
-- Create a `.env` file in the `frontend` directory:
-  ```env
-  VITE_API_URL=https://your-api-url.com/api
-  ```
-- Access it in your code with:
-  ```ts
-  const apiUrl = import.meta.env.VITE_API_URL;
-  ```
-- No need for custom scripts or manual injection—Vite handles this automatically.
