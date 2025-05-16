@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { queryAPI } from '../services/api';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  BarChart, Bar
+  BarChart, Bar, PieChart, Pie, Cell
 } from 'recharts';
 import WeekNavigation from '../components/standups/WeekNavigation';
 import WeekCalendar from '../components/standups/WeekCalendar';
@@ -238,6 +238,13 @@ interface ComparisonData {
   highlightCount: number;
   blockerCount: number;
   uniqueTagCount: number;
+}
+
+// Add type for tooltip payload
+interface TooltipPayload {
+  payload: ChartData;
+  value: number;
+  name: 'Mood' | 'Productivity';
 }
 
 const WeeklySummaryPage: React.FC = () => {
@@ -509,11 +516,9 @@ ${weekData.tags.slice(0, 5).map(t => `- ${t.tag} (${t.count})`).join('\n')}
                   <YAxis domain={[0, 5]} />
                   <Tooltip 
                     formatter={(value, name) => [value, name === 'mood' ? 'Mood' : 'Productivity']}
-                    labelFormatter={(label, items) => {
-                      if (items && items.length > 0) {
-                        const item = items[0];
-                        const payload = item.payload as ChartData;
-                        return `${label} (${new Date(payload.fullDate).toLocaleDateString()})`;
+                    labelFormatter={(label: string, payload: any[]) => {
+                      if (payload?.[0]?.payload?.fullDate) {
+                        return `${label} (${new Date(payload[0].payload.fullDate).toLocaleDateString()})`;
                       }
                       return label;
                     }}
