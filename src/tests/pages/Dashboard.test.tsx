@@ -7,16 +7,18 @@ import { BrowserRouter } from 'react-router-dom';
 import * as DashboardModule from '../../pages/Dashboard';
 import { StandupActionTypes } from '../../redux/standups/types';
 import { standupAPI } from '../../services/api';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { Dispatch, AnyAction } from 'redux';
 
 // Define an interface for the Dashboard component props
 interface MockDashboardProps {
-  dispatch: any;
+  dispatch: Dispatch<AnyAction>;
 }
 
 // Mock the Dashboard component instead of useEffect to avoid rendering issues
-jest.mock('../../pages/Dashboard', () => {
+vi.mock('../../pages/Dashboard', () => {
   // Create a mock version of the Dashboard component
-  const MockDashboard = (props: MockDashboardProps) => {
+  const MockDashboard: React.FC<MockDashboardProps> = (props) => {
     return (
       <div>
         <h1>Welcome to StandupSync</h1>
@@ -34,16 +36,16 @@ jest.mock('../../pages/Dashboard', () => {
 });
 
 // Mock the redux actions
-const fetchStandups = jest.fn(() => ({ type: StandupActionTypes.FETCH_STANDUPS_REQUEST }));
+const fetchStandups = vi.fn(() => ({ type: StandupActionTypes.FETCH_STANDUPS_REQUEST }));
 
 // Mock the API service
-jest.mock('../../services/api', () => ({
+vi.mock('../../services/api', () => ({
   standupAPI: {
-    getStats: jest.fn(),
-    getAll: jest.fn()
+    getStats: vi.fn(),
+    getAll: vi.fn()
   },
   queryAPI: {
-    query: jest.fn()
+    query: vi.fn()
   }
 }));
 
@@ -53,11 +55,12 @@ const mockStore = configureStore([]);
 // Helper to render the component with the mock store
 const renderWithStore = (initialState = {}) => {
   const store = mockStore(initialState);
+  const MockDashboardComponent = DashboardModule.default as React.FC<MockDashboardProps>;
   return {
     ...render(
       <Provider store={store}>
         <BrowserRouter>
-          <DashboardModule.default dispatch={store.dispatch} />
+          <MockDashboardComponent dispatch={store.dispatch} />
         </BrowserRouter>
       </Provider>
     ),
@@ -67,10 +70,10 @@ const renderWithStore = (initialState = {}) => {
 
 describe('Dashboard Component', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Setup mock responses
-    (standupAPI.getStats as jest.Mock).mockResolvedValue({
+    (standupAPI.getStats as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: {
         totalStandups: 10,
         dateRange: {
@@ -105,7 +108,7 @@ describe('Dashboard Component', () => {
       }
     });
     
-    (standupAPI.getAll as jest.Mock).mockResolvedValue({
+    (standupAPI.getAll as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: [
         {
           date: '2023-05-01',
@@ -163,12 +166,13 @@ describe('Dashboard Component', () => {
     });
     
     // Define a custom dispatch function for the mock
-    const mockDispatch = jest.fn();
+    const mockDispatch = vi.fn();
+    const MockDashboardComponent = DashboardModule.default as React.FC<MockDashboardProps>;
     
     render(
       <Provider store={store}>
         <BrowserRouter>
-          <DashboardModule.default dispatch={mockDispatch} />
+          <MockDashboardComponent dispatch={mockDispatch} />
         </BrowserRouter>
       </Provider>
     );
@@ -196,10 +200,10 @@ describe('Dashboard Component', () => {
     
     // Mock console.error to prevent test output noise
     const originalConsoleError = console.error;
-    console.error = jest.fn();
+    console.error = vi.fn();
     
     // Mock API error
-    (standupAPI.getStats as jest.Mock).mockRejectedValueOnce(new Error('API error'));
+    (standupAPI.getStats as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('API error'));
     
     renderWithStore(initialState);
     

@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import StandupCard from '../../../components/standups/StandupCard';
 import { Standup } from '../../../redux/standups/types';
+import { vi } from 'vitest';
 
 // Needed to render Link components
 const renderWithRouter = (ui: React.ReactNode) => {
@@ -25,11 +26,11 @@ describe('StandupCard Component', () => {
   };
 
   // Mock handler functions
-  const mockToggleHighlight = jest.fn();
-  const mockDelete = jest.fn();
+  const mockToggleHighlight = vi.fn();
+  const mockDelete = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders standup card with correct content', () => {

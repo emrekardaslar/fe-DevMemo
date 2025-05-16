@@ -1,3 +1,4 @@
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import axios from 'axios';
 import { standupAPI, queryAPI } from '../../services/api';
 import { CreateStandupDto, UpdateStandupDto } from '../../redux/standups/types';
@@ -9,31 +10,29 @@ type MockedFunction<T extends (...args: any) => any> = jest.Mock<ReturnType<T>, 
 };
 
 // Directly mock the service methods
-jest.mock('../../services/api', () => {
-  const originalModule = jest.requireActual('../../services/api');
-  
-  // Create mocked API service with proper typings
+vi.mock('../../services/api', () => {
+  const originalModule = vi.importActual('../../services/api');
   return {
+    ...originalModule,
     standupAPI: {
-      getAll: jest.fn(),
-      getByDate: jest.fn(),
-      getByDateRange: jest.fn(),
-      getHighlights: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      toggleHighlight: jest.fn(),
-      search: jest.fn(),
-      getStats: jest.fn()
+      getAll: vi.fn(),
+      getByDate: vi.fn(),
+      getByDateRange: vi.fn(),
+      getHighlights: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      toggleHighlight: vi.fn(),
+      search: vi.fn(),
+      getStats: vi.fn()
     },
     queryAPI: {
-      getWeeklySummary: jest.fn(),
-      getMonthlySummary: jest.fn(),
-      getBlockers: jest.fn(),
-      getAllWithBlockers: jest.fn(),
-      processQuery: jest.fn()
-    },
-    default: originalModule.default
+      getWeeklySummary: vi.fn(),
+      getMonthlySummary: vi.fn(),
+      getBlockers: vi.fn(),
+      getAllWithBlockers: vi.fn(),
+      processQuery: vi.fn()
+    }
   };
 });
 
@@ -48,7 +47,7 @@ const mockedQueryAPI = queryAPI as {
 
 describe('API Services', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('standupAPI', () => {

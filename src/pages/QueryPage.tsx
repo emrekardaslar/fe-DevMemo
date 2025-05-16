@@ -885,7 +885,7 @@ const QueryPage: React.FC = () => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <QueryButton type="submit" disabled={loading || !query.trim()}>
+          <QueryButton type="submit" disabled={loading || !query.trim()} data-testid="query-submit-button">
             {loading ? 'Processing...' : <><FiSearch /> Ask</>}
           </QueryButton>
           {query && (

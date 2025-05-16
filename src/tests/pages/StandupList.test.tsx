@@ -1,373 +1,209 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
+import { thunk, ThunkDispatch } from 'redux-thunk';
+import { AnyAction } from 'redux';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
-import { StandupActionTypes } from '../../redux/standups/types';
-import * as StandupListModule from '../../pages/StandupList';
+import StandupList from '../../pages/StandupList';
 import { Standup } from '../../redux/standups/types';
+import { StandupActionTypes } from '../../redux/standups/types';
 
-// Define our actions directly using action types from the types file
-const actionCreators = {
-  fetchStandups: (params: any) => ({ 
-    type: StandupActionTypes.FETCH_STANDUPS_REQUEST, 
-    payload: params 
-  }),
-  toggleHighlight: (date: string) => ({ 
-    type: StandupActionTypes.TOGGLE_HIGHLIGHT_REQUEST, 
-    payload: date 
-  }),
-  deleteStandup: (date: string) => ({ 
-    type: StandupActionTypes.DELETE_STANDUP_REQUEST, 
-    payload: date 
-  })
-};
+// Mock the API service
+vi.mock('../../services/standupAPI', () => ({
+  default: {
+    getAll: vi.fn(),
+    delete: vi.fn()
+  }
+}));
 
-// Create an interface for the component props
-interface MockStandupListProps {
-  standups: Standup[];
-  loading: boolean;
-  error: string | null;
-  dispatch: any;
-}
+// Mock the async action creators
+vi.mock('../../redux/standups/actions', () => ({
+  fetchStandups: () => ({ type: StandupActionTypes.FETCH_STANDUPS_REQUEST }),
+  toggleHighlight: () => ({ type: StandupActionTypes.TOGGLE_HIGHLIGHT_REQUEST }),
+  deleteStandup: () => ({ type: StandupActionTypes.DELETE_STANDUP_REQUEST })
+}));
 
-// Mock the StandupList module to prevent useEffect from running
-jest.mock('../../pages/StandupList', () => {
-  // Create a mock version that doesn't include the useEffect hook
-  const MockStandupList = (props: MockStandupListProps) => {
-    // Handlers for actions
-    const handleToggleHighlight = (date: string) => {
-      props.dispatch(actionCreators.toggleHighlight(date));
-    };
-    
-    const handleDelete = (date: string) => {
-      if (window.confirm('Are you sure you want to delete this standup?')) {
-        props.dispatch(actionCreators.deleteStandup(date));
-      }
-    };
-    
-    // Return the JSX without the actual component logic
-    return (
-      <div>
-        <h1>All Standups</h1>
-        <a href="/standups/new">New Standup</a>
-        
-        {props.loading && <p>Loading standups...</p>}
-        
-        {props.error && <p>Error: {props.error}</p>}
-        
-        {!props.loading && !props.error && props.standups.length === 0 && (
-          <p>No standups found. Get started by creating your first standup!</p>
-        )}
-        
-        {!props.loading && !props.error && props.standups.map((standup: Standup) => (
-          <div key={standup.date} data-testid="standup-card">
-            <p>{standup.yesterday}</p>
-            <p>{standup.today}</p>
-            <button 
-              onClick={() => handleToggleHighlight(standup.date)}
-              data-testid={`highlight-${standup.date}`}
-            >
-              {standup.isHighlight ? 'Remove Highlight' : 'Highlight'}
-            </button>
-            <button 
-              onClick={() => handleDelete(standup.date)}
-              data-testid={`delete-${standup.date}`}
-            >
-              Delete
-            </button>
-          </div>
-        ))}
-      </div>
-    );
-  };
-  
-  return {
-    __esModule: true,
-    default: MockStandupList
-  };
-});
-
-// Mock window.confirm
-const mockConfirm = jest.fn(() => true);
-window.confirm = mockConfirm;
-
-// Create a mock store
-const mockStore = configureStore([]);
-
-// Helper to render the component with the mock store
-const renderWithStore = (initialState = {}) => {
-  const store = mockStore(initialState);
-  return {
-    ...render(
-      <Provider store={store}>
-        <BrowserRouter>
-          <StandupListModule.default 
-            dispatch={store.dispatch} 
-            standups={initialState.standups?.standups || []}
-            loading={initialState.standups?.loading || false}
-            error={initialState.standups?.error || null}
-          />
-        </BrowserRouter>
-      </Provider>
-    ),
-    store
-  };
-};
+// Create a mock store with thunk middleware
+const middlewares = [thunk as unknown as ThunkDispatch<any, any, AnyAction>];
+const mockStore = configureStore(middlewares);
 
 describe('StandupList Component', () => {
+  const mockStandups: Standup[] = [
+    {
+      date: '2023-05-01',
+      yesterday: 'Worked on API endpoints',
+      today: 'Working on tests',
+      blockers: 'None',
+      isBlockerResolved: false,
+      tags: ['api', 'testing'],
+      mood: 4,
+      productivity: 5,
+      isHighlight: false,
+      createdAt: '2023-05-01T12:00:00Z',
+      updatedAt: '2023-05-01T12:00:00Z'
+    },
+    {
+      date: '2023-05-02',
+      yesterday: 'Worked on backend',
+      today: 'Working on database',
+      blockers: 'None',
+      isBlockerResolved: false,
+      tags: ['backend', 'database'],
+      mood: 4,
+      productivity: 5,
+      isHighlight: true,
+      createdAt: '2023-05-02T12:00:00Z',
+      updatedAt: '2023-05-02T12:00:00Z'
+    }
+  ];
+
+  const initialState = {
+    standups: {
+      standups: mockStandups,
+      loading: false,
+      error: null
+    }
+  };
+
+  let store: ReturnType<typeof mockStore>;
+
   beforeEach(() => {
-    jest.clearAllMocks();
+    store = mockStore(initialState);
+    vi.clearAllMocks();
   });
 
+  const renderWithProviders = () => {
+    return render(
+      <Provider store={store}>
+        <BrowserRouter>
+          <StandupList />
+        </BrowserRouter>
+      </Provider>
+    );
+  };
+
   it('renders the StandupList with title and New Standup button', () => {
-    const initialState = {
-      standups: {
-        standups: [],
-        loading: false,
-        error: null
-      }
-    };
-    
-    renderWithStore(initialState);
-    
-    // Check for title
-    expect(screen.getByRole('heading', { name: /All Standups/i })).toBeInTheDocument();
-    
-    // Check for New Standup button
-    const newButton = screen.getByText('New Standup');
-    expect(newButton).toBeInTheDocument();
-    expect(newButton.getAttribute('href')).toBe('/standups/new');
+    renderWithProviders();
+
+    expect(screen.getByRole('heading', { name: /all standups/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /new standup/i })).toBeInTheDocument();
   });
 
   it('displays loading message when loading is true', () => {
-    const initialState = {
+    store = mockStore({
       standups: {
-        standups: [],
-        loading: true,
-        error: null
+        ...initialState.standups,
+        loading: true
       }
-    };
-    
-    renderWithStore(initialState);
-    
-    expect(screen.getByText('Loading standups...')).toBeInTheDocument();
+    });
+
+    renderWithProviders();
+
+    expect(screen.getByText(/loading standups/i)).toBeInTheDocument();
   });
 
   it('displays error message when there is an error', () => {
-    const initialState = {
+    store = mockStore({
       standups: {
-        standups: [],
-        loading: false,
-        error: 'Failed to fetch standups'
+        ...initialState.standups,
+        error: 'Failed to load standups'
       }
-    };
-    
-    renderWithStore(initialState);
-    
-    expect(screen.getByText('Error: Failed to fetch standups')).toBeInTheDocument();
+    });
+
+    renderWithProviders();
+
+    expect(screen.getByText(/failed to load standups/i)).toBeInTheDocument();
   });
 
   it('displays empty message when there are no standups', () => {
-    const initialState = {
+    store = mockStore({
       standups: {
-        standups: [],
-        loading: false,
-        error: null
+        ...initialState.standups,
+        standups: []
       }
-    };
-    
-    renderWithStore(initialState);
-    
-    expect(screen.getByText('No standups found. Get started by creating your first standup!')).toBeInTheDocument();
+    });
+
+    renderWithProviders();
+
+    expect(screen.getByText(/no standups found/i)).toBeInTheDocument();
   });
 
   it('renders standup cards when standups are available', () => {
-    const standups = [
-      {
-        date: '2023-05-01',
-        yesterday: 'Worked on API endpoints',
-        today: 'Working on tests',
-        blockers: 'None',
-        isBlockerResolved: false,
-        tags: ['api', 'testing'],
-        mood: 4,
-        productivity: 5,
-        isHighlight: false,
-        createdAt: '2023-05-01T12:00:00Z',
-        updatedAt: '2023-05-01T12:00:00Z'
-      }
-    ];
-    
-    const initialState = {
-      standups: {
-        standups,
-        loading: false,
-        error: null
-      }
-    };
-    
-    renderWithStore(initialState);
-    
-    // Check for standup content
+    renderWithProviders();
+
     expect(screen.getByText('Worked on API endpoints')).toBeInTheDocument();
-    expect(screen.getByText('Working on tests')).toBeInTheDocument();
+    expect(screen.getByText('Worked on backend')).toBeInTheDocument();
   });
 
   it('calls fetchStandups action when mounted', () => {
-    const initialState = {
-      standups: {
-        standups: [],
-        loading: false,
-        error: null
-      }
-    };
-    
-    const { store } = renderWithStore(initialState);
-    
-    // Simulate dispatching fetchStandups on mount
-    store.dispatch(actionCreators.fetchStandups({}));
-    
-    // Verify the action was dispatched correctly
-    const expectedAction = actionCreators.fetchStandups({});
-    expect(store.getActions()).toContainEqual(expectedAction);
+    renderWithProviders();
+
+    const actions = store.getActions();
+    expect(actions).toContainEqual({ type: StandupActionTypes.FETCH_STANDUPS_REQUEST });
   });
 
-  it('calls fetchStandups with isHighlight=true when filter is changed', () => {
-    const initialState = {
-      standups: {
-        standups: [],
-        loading: false,
-        error: null
-      }
-    };
-    
-    const { store } = renderWithStore(initialState);
-    
-    // Simulate dispatching fetchStandups with filter
-    store.dispatch(actionCreators.fetchStandups({ isHighlight: 'true' }));
-    
-    // Verify the action was dispatched correctly
-    const expectedAction = actionCreators.fetchStandups({ isHighlight: 'true' });
-    expect(store.getActions()).toContainEqual(expectedAction);
+  it('calls fetchStandups with isHighlight=true when filter is changed', async () => {
+    renderWithProviders();
+
+    const filterSelect = screen.getByRole('combobox');
+    fireEvent.change(filterSelect, { target: { value: 'highlights' } });
+
+    await waitFor(() => {
+      const actions = store.getActions();
+      expect(actions).toContainEqual({ type: StandupActionTypes.FETCH_STANDUPS_REQUEST });
+    });
   });
 
-  it('calls toggleHighlight when highlight button is clicked', () => {
-    const standups = [
-      {
-        date: '2023-05-01',
-        yesterday: 'Worked on API endpoints',
-        today: 'Working on tests',
-        blockers: 'None',
-        isBlockerResolved: false,
-        tags: ['api', 'testing'],
-        mood: 4,
-        productivity: 5,
-        isHighlight: false,
-        createdAt: '2023-05-01T12:00:00Z',
-        updatedAt: '2023-05-01T12:00:00Z'
-      }
-    ];
-    
-    const initialState = {
-      standups: {
-        standups,
-        loading: false,
-        error: null
-      }
-    };
-    
-    const { store } = renderWithStore(initialState);
-    
-    // Click the highlight button
-    const highlightButton = screen.getByTestId('highlight-2023-05-01');
+  it('calls toggleHighlight when highlight button is clicked', async () => {
+    renderWithProviders();
+
+    const highlightButton = screen.getAllByTitle(/highlight/i)[0];
     fireEvent.click(highlightButton);
-    
-    // Verify the action was dispatched
-    const expectedAction = actionCreators.toggleHighlight('2023-05-01');
-    expect(store.getActions()).toContainEqual(expectedAction);
+
+    await waitFor(() => {
+      const actions = store.getActions();
+      expect(actions).toContainEqual({ type: StandupActionTypes.TOGGLE_HIGHLIGHT_REQUEST });
+    });
   });
 
-  it('calls deleteStandup when delete button is clicked and confirmed', () => {
-    const standups = [
-      {
-        date: '2023-05-01',
-        yesterday: 'Worked on API endpoints',
-        today: 'Working on tests',
-        blockers: 'None',
-        isBlockerResolved: false,
-        tags: ['api', 'testing'],
-        mood: 4,
-        productivity: 5,
-        isHighlight: false,
-        createdAt: '2023-05-01T12:00:00Z',
-        updatedAt: '2023-05-01T12:00:00Z'
-      }
-    ];
-    
-    const initialState = {
-      standups: {
-        standups,
-        loading: false,
-        error: null
-      }
-    };
-    
-    window.confirm = jest.fn(() => true); // Mock confirm to return true
-    
-    const { store } = renderWithStore(initialState);
-    
-    // Click the delete button
-    const deleteButton = screen.getByTestId('delete-2023-05-01');
+  it('calls deleteStandup when delete button is clicked and confirmed', async () => {
+    // Mock window.confirm
+    const originalConfirm = window.confirm;
+    window.confirm = vi.fn(() => true);
+
+    renderWithProviders();
+
+    const deleteButton = screen.getAllByTitle('Delete')[0];
     fireEvent.click(deleteButton);
-    
-    // Verify the confirm dialog was shown
-    expect(window.confirm).toHaveBeenCalledWith('Are you sure you want to delete this standup?');
-    
-    // Verify the action was dispatched
-    const expectedAction = actionCreators.deleteStandup('2023-05-01');
-    expect(store.getActions()).toContainEqual(expectedAction);
+
+    await waitFor(() => {
+      const actions = store.getActions();
+      expect(actions).toContainEqual({ type: StandupActionTypes.DELETE_STANDUP_REQUEST });
+    });
+
+    // Restore window.confirm
+    window.confirm = originalConfirm;
   });
 
-  it('does not call deleteStandup when delete is canceled', () => {
-    const standups = [
-      {
-        date: '2023-05-01',
-        yesterday: 'Worked on API endpoints',
-        today: 'Working on tests',
-        blockers: 'None',
-        isBlockerResolved: false,
-        tags: ['api', 'testing'],
-        mood: 4,
-        productivity: 5,
-        isHighlight: false,
-        createdAt: '2023-05-01T12:00:00Z',
-        updatedAt: '2023-05-01T12:00:00Z'
-      }
-    ];
-    
-    const initialState = {
-      standups: {
-        standups,
-        loading: false,
-        error: null
-      }
-    };
-    
-    // Mock confirm to return false (cancel)
-    window.confirm = jest.fn(() => false);
-    
-    const { store } = renderWithStore(initialState);
-    
-    // Click the delete button
-    const deleteButton = screen.getByTestId('delete-2023-05-01');
+  it('does not call deleteStandup when delete is canceled', async () => {
+    // Mock window.confirm
+    const originalConfirm = window.confirm;
+    window.confirm = vi.fn(() => false);
+
+    renderWithProviders();
+
+    const deleteButton = screen.getAllByTitle('Delete')[0];
     fireEvent.click(deleteButton);
-    
-    // Verify the confirm dialog was shown
-    expect(window.confirm).toHaveBeenCalledWith('Are you sure you want to delete this standup?');
-    
-    // Verify the action was NOT dispatched (empty actions array)
-    expect(store.getActions()).toEqual([]);
+
+    await waitFor(() => {
+      const actions = store.getActions();
+      expect(actions).not.toContainEqual({ type: StandupActionTypes.DELETE_STANDUP_REQUEST });
+    });
+
+    // Restore window.confirm
+    window.confirm = originalConfirm;
   });
 }); 

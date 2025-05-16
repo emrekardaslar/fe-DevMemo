@@ -1,17 +1,18 @@
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { StandupActionTypes, Standup, StandupState, CreateStandupDto } from '../../../redux/standups/types';
 import * as actions from '../../../redux/standups/actions';
 import { standupAPI } from '../../../services/api';
 import { RootState } from '../../../redux/store';
 
 // Mock the api service
-jest.mock('../../../services/api', () => ({
+vi.mock('../../../services/api', () => ({
   standupAPI: {
-    getAll: jest.fn(),
-    getByDate: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-    toggleHighlight: jest.fn()
+    getAll: vi.fn(),
+    getByDate: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    toggleHighlight: vi.fn()
   }
 }));
 
@@ -34,9 +35,9 @@ describe('Standup Actions', () => {
   let getState: GetStateMock;
   
   beforeEach(() => {
-    jest.clearAllMocks();
-    dispatch = jest.fn();
-    getState = jest.fn().mockReturnValue({
+    vi.clearAllMocks();
+    dispatch = vi.fn();
+    getState = vi.fn().mockReturnValue({
       standups: createMockState()
     } as RootState);
   });
