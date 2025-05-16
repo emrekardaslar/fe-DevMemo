@@ -579,7 +579,7 @@ describe('Standup Actions', () => {
       const errorMessage = 'Network Error';
       
       // Mock API error
-      (standupAPI.toggleHighlight as jest.Mock).mockRejectedValueOnce(new Error(errorMessage));
+      (standupAPI.toggleHighlight as jest.Mock).mockRejectedValueOnce(new Error("Network Error"));
       
       // Setup current state
       getState.mockReturnValue({
