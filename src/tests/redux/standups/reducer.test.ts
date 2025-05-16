@@ -1,5 +1,5 @@
 import standupReducer from '../../../redux/standups/reducer';
-import { StandupActionTypes } from '../../../redux/standups/types';
+import { StandupActionTypes, StandupAction, Standup } from '../../../redux/standups/types';
 
 describe('Standup Reducer', () => {
   const initialState = {
@@ -11,11 +11,12 @@ describe('Standup Reducer', () => {
   };
 
   // Sample standup data for tests
-  const sampleStandup = {
+  const sampleStandup: Standup = {
     date: '2023-05-01',
     yesterday: 'Worked on API endpoints',
     today: 'Writing tests',
     blockers: 'None',
+    isBlockerResolved: true,
     tags: ['api', 'testing'],
     mood: 4,
     productivity: 5,
@@ -26,11 +27,11 @@ describe('Standup Reducer', () => {
 
   it('should return initial state', () => {
     // @ts-ignore - passing undefined action to get initial state
-    expect(standupReducer(undefined, {})).toEqual(initialState);
+    expect(standupReducer(undefined, {} as StandupAction)).toEqual(initialState);
   });
 
   it('should handle FETCH_STANDUPS_REQUEST', () => {
-    const action = {
+    const action: StandupAction = {
       type: StandupActionTypes.FETCH_STANDUPS_REQUEST
     };
     
@@ -43,7 +44,7 @@ describe('Standup Reducer', () => {
 
   it('should handle FETCH_STANDUPS_SUCCESS', () => {
     const standups = [sampleStandup];
-    const action = {
+    const action: StandupAction = {
       type: StandupActionTypes.FETCH_STANDUPS_SUCCESS,
       payload: standups
     };
@@ -58,7 +59,7 @@ describe('Standup Reducer', () => {
 
   it('should handle FETCH_STANDUPS_FAILURE', () => {
     const errorMessage = 'Failed to fetch standups';
-    const action = {
+    const action: StandupAction = {
       type: StandupActionTypes.FETCH_STANDUPS_FAILURE,
       payload: errorMessage
     };
@@ -72,7 +73,7 @@ describe('Standup Reducer', () => {
 
   it('should handle CREATE_STANDUP_SUCCESS', () => {
     const newStandup = sampleStandup;
-    const action = {
+    const action: StandupAction = {
       type: StandupActionTypes.CREATE_STANDUP_SUCCESS,
       payload: newStandup
     };
@@ -101,7 +102,7 @@ describe('Standup Reducer', () => {
       tags: ['api', 'testing', 'updated']
     };
     
-    const action = {
+    const action: StandupAction = {
       type: StandupActionTypes.UPDATE_STANDUP_SUCCESS,
       payload: updatedStandup
     };
@@ -124,7 +125,7 @@ describe('Standup Reducer', () => {
       currentStandup: sampleStandup
     };
     
-    const action = {
+    const action: StandupAction = {
       type: StandupActionTypes.DELETE_STANDUP_SUCCESS,
       payload: sampleStandup.date
     };
@@ -152,7 +153,7 @@ describe('Standup Reducer', () => {
       isHighlight: true
     };
     
-    const action = {
+    const action: StandupAction = {
       type: StandupActionTypes.TOGGLE_HIGHLIGHT_SUCCESS,
       payload: highlightedStandup
     };
@@ -173,7 +174,7 @@ describe('Standup Reducer', () => {
       error: 'Some error'
     };
     
-    const action = {
+    const action: StandupAction = {
       type: StandupActionTypes.CLEAR_STANDUP
     };
     
@@ -192,7 +193,7 @@ describe('Standup Reducer', () => {
       error: 'Some error'
     };
     
-    const action = {
+    const action: StandupAction = {
       type: StandupActionTypes.RESET_SUCCESS
     };
     

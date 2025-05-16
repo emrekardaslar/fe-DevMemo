@@ -17,6 +17,7 @@ describe('StandupCard Component', () => {
     yesterday: 'Worked on API endpoints',
     today: 'Writing tests',
     blockers: 'None',
+    isBlockerResolved: true,
     tags: ['api', 'testing'],
     mood: 4,
     productivity: 5,

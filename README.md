@@ -104,3 +104,15 @@ If you'd like to contribute to the frontend:
 ## Related
 
 - [Backend README](https://github.com/emrekardaslar/be-devmemo/blob/main/README.md) - Information about the backend
+
+## Environment Variables with Vite
+
+- Create a `.env` file in the `frontend` directory:
+  ```env
+  VITE_API_URL=https://your-api-url.com/api
+  ```
+- Access it in your code with:
+  ```ts
+  const apiUrl = import.meta.env.VITE_API_URL;
+  ```
+- No need for custom scripts or manual injection—Vite handles this automatically.

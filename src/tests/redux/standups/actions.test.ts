@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 import { StandupActionTypes, Standup, StandupState, CreateStandupDto } from '../../../redux/standups/types';
 import * as actions from '../../../redux/standups/actions';
 import { standupAPI } from '../../../services/api';
@@ -17,8 +17,8 @@ vi.mock('../../../services/api', () => ({
 }));
 
 // Create a more type-safe testing approach for async actions
-type DispatchMock = jest.Mock;
-type GetStateMock = jest.Mock<RootState>;
+type DispatchMock = Mock;
+type GetStateMock = Mock<[], RootState>;
 
 // Helper to create a properly typed initial state
 const createMockState = (overrides?: Partial<StandupState>): StandupState => ({

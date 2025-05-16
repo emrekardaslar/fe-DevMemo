@@ -157,10 +157,10 @@ export const toggleHighlight = (date: string): ThunkAction<void, RootState, unkn
   };
 };
 
-export const clearStandup = () => ({
+export const clearStandup = (): StandupAction => ({
   type: StandupActionTypes.CLEAR_STANDUP
 });
 
-export const resetSuccess = () => ({
+export const resetSuccess = (): StandupAction => ({
   type: StandupActionTypes.RESET_SUCCESS
 }); 

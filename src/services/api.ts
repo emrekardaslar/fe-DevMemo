@@ -1,8 +1,26 @@
 import axios, { AxiosError } from 'axios';
 import { Standup, CreateStandupDto, UpdateStandupDto } from '../redux/standups/types';
 
-// Get API URL with fallback mechanism
-let API_URL: string;
+// Get API URL from Vite env
+const API_URL: string = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+
+// Create axios instance
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Vite env type declaration for TypeScript
+declare global {
+  interface ImportMeta {
+    env: {
+      VITE_API_URL?: string;
+      [key: string]: any;
+    };
+  }
+}
 
 // Type declaration for window
 declare global {
@@ -13,33 +31,6 @@ declare global {
 
 // Determine if we're in a browser environment
 const isBrowser = typeof window !== 'undefined';
-
-// Use injected URL or default to local development
-if (isBrowser && window.__REACT_APP_API_URL) {
-  API_URL = window.__REACT_APP_API_URL;
-  console.log('Using API URL from window.__REACT_APP_API_URL:', API_URL);
-} else {
-  // Fallback if not in browser or URL not injected
-  API_URL = 'http://localhost:4000/api';
-  console.log('Using fallback API URL:', API_URL);
-  
-  // Add warning in development
-  if (isBrowser) {
-    console.warn(
-      'Warning: window.__REACT_APP_API_URL is not set. Using fallback URL. ' +
-      'This might cause issues connecting to the API. ' +
-      'Make sure webpack is properly configured to inject the API URL.'
-    );
-  }
-}
-
-// Create axios instance
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
 
 // Type for API error response
 interface ApiErrorResponse {
