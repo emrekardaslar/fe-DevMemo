@@ -11,10 +11,29 @@ export default {
   server: {
     port: 3000,
     host: true,
-    open: true
+    open: true,
+    allowedHosts: [
+      'fe-devmemo.onrender.com',
+      'localhost',
+      '127.0.0.1'
+    ],
+    // Enable CORS for development
+    cors: true
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: true,
+    // Configure chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+    // Optimize chunk splitting
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'recharts-vendor': ['recharts'],
+          'styled-components': ['styled-components']
+        }
+      }
+    }
   }
 } 
