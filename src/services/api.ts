@@ -483,22 +483,33 @@ export const queryAPI = {
   // Get monthly summary
   getMonthlySummary: async (month: string) => {
     try {
-      // Get all standups for the selected month
-      const standups = await api.get('/standups', { params: { month } });
+      // Parse the month string to get year and month for calculating date range
+      const [year, monthNum] = month.split('-').map(part => parseInt(part));
+      
+      // Calculate first and last day of the month
+      const firstDay = new Date(year, monthNum - 1, 1);
+      const lastDay = new Date(year, monthNum, 0); // Day 0 of next month = last day of current month
+      
+      // Format dates as YYYY-MM-DD for API
+      const startDate = firstDay.toISOString().split('T')[0];
+      const endDate = lastDay.toISOString().split('T')[0];
+      
+      console.log(`Getting monthly summary for range: ${startDate} to ${endDate}`);
+      
+      // Get standups for the date range instead of using the month parameter
+      const standupEntries = await standupAPI.getByDateRange(startDate, endDate);
       
       // Get overall stats to supplement the data
       const statsResponse = await api.get('/standups/stats');
       
       // Ensure we have valid data from the API
-      if (!standups.data?.success || !Array.isArray(standups.data?.data)) {
+      if (!Array.isArray(standupEntries)) {
+        console.warn('No array of standups returned from API:', standupEntries);
         throw new Error('Failed to fetch standups for the month');
       }
       
-      const monthStandups = standups.data.data;
+      const monthStandups = standupEntries;
       const stats = statsResponse.data?.data || {};
-      
-      // Parse the month string to get year and month for reference
-      const [year, monthNum] = month.split('-').map(part => parseInt(part));
       
       // Calculate averages from real data
       let totalMood = 0;
