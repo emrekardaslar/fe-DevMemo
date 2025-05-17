@@ -471,7 +471,12 @@ ${weekData.tags.slice(0, 5).map(t => `- ${t.tag} (${t.count})`).join('\n')}
       <WeekCalendar 
         startDate={startDate}
         dates={weekData.standups.dates || []}
-        highlights={weekData.highlights.map(h => h.split(':')[0]) || []}
+        highlights={weekData.highlights.map(h => {
+          console.log("Processing highlight for calendar:", h);
+          const datePart = h.split(':')[0].trim();
+          console.log("Extracted date part for highlight:", datePart);
+          return datePart;
+        }) || []}
       />
       
       {previous && <WeeklyComparison currentWeek={current} previousWeek={previous} />}
