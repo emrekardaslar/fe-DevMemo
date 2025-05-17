@@ -240,7 +240,17 @@ const BlockerAnalysis: React.FC = () => {
         console.log('Blocker analysis response:', response);
         
         if (response) {
-          setBlockerData(response);
+          // Create a properly structured BlockerData object from the response
+          // This ensures all necessary fields are present
+          const formattedData: BlockerData = {
+            total: response.total || 0,
+            resolved: response.resolved || 0,
+            unresolved: response.unresolved || 0,
+            blockers: Array.isArray(response.blockers) ? response.blockers : [],
+            mostFrequentTerms: Array.isArray(response.mostFrequentTerms) ? response.mostFrequentTerms : []
+          };
+          
+          setBlockerData(formattedData);
           
           // Fetch all standups with blockers to check resolved status
           const blockerStandups = await queryAPI.getAllWithBlockers();
@@ -313,16 +323,18 @@ const BlockerAnalysis: React.FC = () => {
 
   // Prepare data for pie chart
   const pieData = [
-    { name: 'Resolved', value: blockerData.resolved },
-    { name: 'Unresolved', value: blockerData.unresolved }
-  ];
+    { name: 'Resolved', value: blockerData.resolved || 0 },
+    { name: 'Unresolved', value: blockerData.unresolved || 0 }
+  ].filter(item => item.value > 0); // Only show segments with values
 
   // Prepare data for the bar chart of most frequent terms
-  const barData = blockerData.mostFrequentTerms.map(term => ({
-    name: term.term.length > 15 ? term.term.substring(0, 15) + '...' : term.term,
-    value: term.count,
-    fullName: term.term // Keep the full name for tooltip
-  }));
+  const barData = blockerData.mostFrequentTerms && blockerData.mostFrequentTerms.length > 0
+    ? blockerData.mostFrequentTerms.map(term => ({
+        name: term.term.length > 15 ? term.term.substring(0, 15) + '...' : term.term,
+        value: term.count,
+        fullName: term.term // Keep the full name for tooltip
+      }))
+    : [];
   
   return (
     <PageContainer>
@@ -377,24 +389,28 @@ const BlockerAnalysis: React.FC = () => {
                 {/* Resolution Status Pie Chart */}
                 <SectionTitle>Blocker Resolution Status</SectionTitle>
                 <ChartContainer>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        <Cell key="resolved" fill={RESOLVED_COLOR} />
-                        <Cell key="unresolved" fill={UNRESOLVED_COLOR} />
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {pieData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                          <Cell key="resolved" fill={RESOLVED_COLOR} />
+                          <Cell key="unresolved" fill={UNRESOLVED_COLOR} />
+                        </Pie>
+                        <Tooltip content={<CustomTooltip />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <EmptyMessage>No resolution data available</EmptyMessage>
+                  )}
                 </ChartContainer>
                 <ChartLegend>
                   <LegendItem>
@@ -408,7 +424,7 @@ const BlockerAnalysis: React.FC = () => {
                 </ChartLegend>
 
                 {/* Most Common Blockers Bar Chart */}
-                {blockerData.mostFrequentTerms && blockerData.mostFrequentTerms.length > 0 && (
+                {barData.length > 0 ? (
                   <>
                     <SectionTitle>Common Blocker Terms</SectionTitle>
                     <ChartContainer>
@@ -436,6 +452,8 @@ const BlockerAnalysis: React.FC = () => {
                       </ResponsiveContainer>
                     </ChartContainer>
                   </>
+                ) : (
+                  <EmptyMessage>No common terms data available</EmptyMessage>
                 )}
               </>
             )}
@@ -519,10 +537,19 @@ const BlockerAnalysis: React.FC = () => {
 
 // Helper function to extract blocker trends from standups
 const extractBlockerTrends = (standups: any[]): BlockerTrend[] => {
+  if (!Array.isArray(standups) || standups.length === 0) {
+    return [];
+  }
+
   const trendMap = new Map<string, BlockerTrend>();
   
   standups.forEach((standup) => {
     try {
+      if (!standup || !standup.date) {
+        console.warn('Found invalid standup entry:', standup);
+        return; // Skip this entry
+      }
+
       const date = new Date(standup.date);
       const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
       const monthName = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
@@ -545,7 +572,7 @@ const extractBlockerTrends = (standups: any[]): BlockerTrend[] => {
         trendData.unresolvedCount += 1;
       }
     } catch (err) {
-      console.error('Error processing date for trend:', err);
+      console.error('Error processing date for trend:', err, 'standup:', standup);
     }
   });
   

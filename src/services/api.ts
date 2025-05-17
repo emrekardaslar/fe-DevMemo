@@ -538,102 +538,136 @@ export const queryAPI = {
   // Get blockers
   getBlockers: async () => {
     try {
-      // Use mock data in development until backend is available
-      console.log('Backend not available, using mock data for blockers');
-      // Simulate a network delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Generate mock data - return direct data format
-      return {
-        total: 12,
-        resolved: 8,
-        unresolved: 4,
-        blockers: [
-          { 
-            date: "2023-05-15", 
-            text: "Waiting for API access from third-party service", 
-            resolved: true 
-          },
-          { 
-            date: "2023-05-12", 
-            text: "Need design feedback for new features", 
-            resolved: true 
-          },
-          { 
-            date: "2023-05-10", 
-            text: "Backend service keeps timing out", 
-            resolved: false 
-          },
-          { 
-            date: "2023-05-08", 
-            text: "Missing documentation for integration", 
-            resolved: true 
-          },
-          { 
-            date: "2023-05-05", 
-            text: "Build pipeline failures blocking deployment", 
-            resolved: true 
-          },
-          { 
-            date: "2023-05-01", 
-            text: "API rate limiting affecting performance", 
-            resolved: false 
+      // First try to get data from the query/blockers endpoint
+      try {
+        const response = await api.get('/query/blockers');
+        
+        if (response.data && response.data.success && response.data.data) {
+          const blockerData = response.data.data;
+          
+          // Handle the special format from the query/blockers endpoint
+          if (Array.isArray(blockerData)) {
+            let total = 0;
+            let resolved = 0;
+            
+            // Get all standups with blockers to check which ones are resolved
+            const standups = await queryAPI.getAllWithBlockers();
+            const standupMap: Record<string, any> = {};
+            
+            if (Array.isArray(standups)) {
+              standups.forEach(standup => {
+                standupMap[standup.date] = standup;
+                total++;
+                if (standup.isBlockerResolved) {
+                  resolved++;
+                }
+              });
+            }
+            
+            // Format blockers for display
+            const blockers = standups && Array.isArray(standups) ? 
+              standups.map(standup => ({
+                date: standup.date,
+                text: standup.blockers,
+                resolved: standup.isBlockerResolved
+              })) : [];
+            
+            // Transform the blockerData format
+            const terms: Record<string, number> = {};
+            blockerData.forEach(item => {
+              terms[item.blocker] = item.occurrences;
+            });
+            
+            // Sort terms by frequency
+            const mostFrequentTerms = Object.entries(terms)
+              .map(([term, count]) => ({ term, count }))
+              .sort((a, b) => b.count - a.count)
+              .slice(0, 10);
+            
+            return {
+              total,
+              resolved,
+              unresolved: total - resolved,
+              blockers,
+              mostFrequentTerms
+            };
           }
-        ],
-        mostFrequentTerms: [
-          { term: "API", count: 5 },
-          { term: "design", count: 3 },
-          { term: "documentation", count: 3 },
-          { term: "integration", count: 2 },
-          { term: "performance", count: 2 }
-        ]
+        }
+      } catch (err) {
+        console.warn('Error fetching from /query/blockers, falling back to standups endpoint', err);
+      }
+      
+      // Fall back to getAllWithBlockers approach
+      const standups = await queryAPI.getAllWithBlockers();
+      
+      if (!Array.isArray(standups)) {
+        throw new Error('Expected array of standups with blockers');
+      }
+      
+      // Calculate statistics
+      const total = standups.length;
+      const resolved = standups.filter(standup => standup.isBlockerResolved).length;
+      const unresolved = total - resolved;
+      
+      // Format blockers for display
+      const blockers = standups.map(standup => ({
+        date: standup.date,
+        text: standup.blockers,
+        resolved: standup.isBlockerResolved
+      }));
+      
+      // Extract common terms (simplified approach)
+      const terms: Record<string, number> = {};
+      standups.forEach(standup => {
+        if (standup.blockers) {
+          // Split by common separators and filter out short words
+          const words: string[] = standup.blockers.split(/[\s,.;:!?]+/).filter((word: string) => word.length > 3);
+          words.forEach((word: string) => {
+            if (!terms[word]) {
+              terms[word] = 0;
+            }
+            terms[word]++;
+          });
+        }
+      });
+      
+      // Sort terms by frequency
+      const mostFrequentTerms = Object.entries(terms)
+        .map(([term, count]) => ({ term, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10); // Top 10 terms
+      
+      return {
+        total,
+        resolved,
+        unresolved,
+        blockers,
+        mostFrequentTerms
       };
     } catch (error) {
-      return handleApiError(error);
+      console.error('Error fetching blocker data:', error);
+      return {
+        total: 0,
+        resolved: 0,
+        unresolved: 0,
+        blockers: [],
+        mostFrequentTerms: []
+      };
     }
   },
   
   // Get all standups that have blockers
   getAllWithBlockers: async () => {
     try {
-      // Use mock data in development until backend is available
-      console.log('Backend not available, using mock data for standups with blockers');
-      // Simulate a network delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await api.get('/standups', { 
+        params: { hasBlockers: 'true' } 
+      });
       
-      // Generate mock data - return direct data format
-      return [
-        {
-          date: "2023-05-15",
-          blockers: "Waiting for API access from third-party service",
-          isBlockerResolved: true
-        },
-        {
-          date: "2023-05-12",
-          blockers: "Need design feedback for new features",
-          isBlockerResolved: true
-        },
-        {
-          date: "2023-05-10",
-          blockers: "Backend service keeps timing out",
-          isBlockerResolved: false
-        },
-        {
-          date: "2023-05-08",
-          blockers: "Missing documentation for integration",
-          isBlockerResolved: true
-        },
-        {
-          date: "2023-05-05",
-          blockers: "Build pipeline failures blocking deployment",
-          isBlockerResolved: true
-        },
-        {
-          date: "2023-05-01",
-          blockers: "API rate limiting affecting performance",
-          isBlockerResolved: false
-        }
-      ];
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
     } catch (error) {
       return handleApiError(error);
     }
