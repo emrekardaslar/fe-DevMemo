@@ -483,55 +483,109 @@ export const queryAPI = {
   // Get monthly summary
   getMonthlySummary: async (month: string) => {
     try {
-      // Use mock data in development until backend is available
-      console.log('Backend not available, using mock data for monthly summary');
-      // Simulate a network delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Get all standups for the selected month
+      const standups = await api.get('/standups', { params: { month } });
       
-      // Parse the month string to get year and month
+      // Get overall stats to supplement the data
+      const statsResponse = await api.get('/standups/stats');
+      
+      // Ensure we have valid data from the API
+      if (!standups.data?.success || !Array.isArray(standups.data?.data)) {
+        throw new Error('Failed to fetch standups for the month');
+      }
+      
+      const monthStandups = standups.data.data;
+      const stats = statsResponse.data?.data || {};
+      
+      // Parse the month string to get year and month for reference
       const [year, monthNum] = month.split('-').map(part => parseInt(part));
       
-      // Generate mock data - return direct data format
+      // Calculate averages from real data
+      let totalMood = 0;
+      let totalProductivity = 0;
+      let moodEntries = 0;
+      let productivityEntries = 0;
+      
+      monthStandups.forEach((standup: Standup) => {
+        if (standup.mood && standup.mood > 0) {
+          totalMood += standup.mood;
+          moodEntries++;
+        }
+        
+        if (standup.productivity && standup.productivity > 0) {
+          totalProductivity += standup.productivity;
+          productivityEntries++;
+        }
+      });
+      
+      const averageMood = moodEntries > 0 ? parseFloat((totalMood / moodEntries).toFixed(1)) : 0;
+      const averageProductivity = productivityEntries > 0 ? parseFloat((totalProductivity / productivityEntries).toFixed(1)) : 0;
+      
+      // Collect tags used in the month
+      const tagCounts: Record<string, number> = {};
+      monthStandups.forEach((standup: Standup) => {
+        if (Array.isArray(standup.tags)) {
+          standup.tags.forEach((tag: string) => {
+            if (!tagCounts[tag]) {
+              tagCounts[tag] = 0;
+            }
+            tagCounts[tag]++;
+          });
+        }
+      });
+      
+      // Sort tags by frequency
+      const topTags = Object.entries(tagCounts)
+        .map(([tag, count]) => ({ tag, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 8); // Top 8 tags
+      
+      // Extract common blockers
+      const blockers = new Set<string>();
+      monthStandups.forEach((standup: Standup) => {
+        if (standup.blockers && standup.blockers.trim()) {
+          blockers.add(standup.blockers);
+        }
+      });
+      
+      // Get top accomplishments from "yesterday" fields
+      const accomplishments = monthStandups
+        .filter((standup: Standup) => standup.yesterday && standup.yesterday.trim().length > 10) // Filter substantial entries
+        .map((standup: Standup) => standup.yesterday)
+        .slice(0, 5); // Top 5 accomplishments
+      
+      // Prepare the daily breakdown
+      const dailyBreakdown = monthStandups.map((standup: Standup) => ({
+        date: standup.date,
+        mood: standup.mood || 0,
+        productivity: standup.productivity || 0,
+        hasBlockers: Boolean(standup.blockers && standup.blockers.trim())
+      }));
+      
+      // Return formatted data
       return {
-        month: month,
-        totalEntries: 20,
-        averageMood: 4.1,
-        averageProductivity: 3.9,
-        topTags: [
-          { tag: "frontend", count: 15 },
-          { tag: "api", count: 12 },
-          { tag: "bugfix", count: 10 },
-          { tag: "feature", count: 8 },
-          { tag: "testing", count: 7 },
-          { tag: "documentation", count: 5 },
-          { tag: "research", count: 4 },
-          { tag: "design", count: 3 }
-        ],
-        topAccomplishments: [
-          "Launched new user dashboard",
-          "Implemented team collaboration features",
-          "Fixed critical security vulnerability",
-          "Optimized database performance",
-          "Completed user research studies"
-        ],
-        topBlockers: [
-          "API integration delays",
-          "Design feedback pending",
-          "Third-party service outages",
-          "Technical debt in legacy code"
-        ],
-        dailyBreakdown: Array.from({ length: 30 }, (_, i) => {
-          const day = i + 1;
-          return {
-            date: `${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-            mood: Math.floor(Math.random() * 3) + 3, // Random mood between 3-5
-            productivity: Math.floor(Math.random() * 3) + 3, // Random productivity between 3-5
-            hasBlockers: Math.random() > 0.7 // 30% chance of having blockers
-          };
-        })
+        month,
+        totalEntries: monthStandups.length,
+        averageMood,
+        averageProductivity,
+        topTags,
+        topAccomplishments: accomplishments,
+        topBlockers: Array.from(blockers).slice(0, 5), // Up to 5 blockers
+        dailyBreakdown
       };
     } catch (error) {
-      return handleApiError(error);
+      console.error('Error fetching monthly summary:', error);
+      // Return empty data structure in case of error
+      return {
+        month: '',
+        totalEntries: 0,
+        averageMood: 0,
+        averageProductivity: 0,
+        topTags: [],
+        topAccomplishments: [],
+        topBlockers: [],
+        dailyBreakdown: []
+      };
     }
   },
   
