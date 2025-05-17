@@ -1,32 +1,74 @@
-// Team member model
-export interface TeamMember {
-  id: string;
-  userId: string;
-  teamId: string;
-  role: 'admin' | 'member' | 'viewer';
-  joinedAt: string;
-  username: string;  // Joined from User table
-  email: string;     // Joined from User table
-  avatarUrl?: string; // Joined from User table
+import { BaseEntity } from '../../../types/common';
+import { User } from '../../../types/auth';
+
+/**
+ * Redux team types
+ */
+
+// Team role
+export enum TeamRole {
+  OWNER = 'owner',
+  ADMIN = 'admin',
+  MEMBER = 'member'
 }
 
-// Team model
-export interface Team {
+// Team entity
+export interface Team extends BaseEntity {
   id: string;
   name: string;
   description?: string;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string;
-  members?: TeamMember[];
-  isDefault?: boolean;
+  owner: string; // User ID
+  isPrivate: boolean;
+  members?: TeamMember[]; // Include members property
+  isDefault?: boolean; // Include for TeamPage component
 }
 
-// Team state interface
+// Team member with consistent fields
+export interface TeamMember extends BaseEntity {
+  id: string;
+  teamId: string;
+  userId: string;
+  role: TeamRole;
+  user?: User;
+  // These fields are needed to match the usage in selectors
+  username: string;
+  email: string;
+}
+
+// Team membership request
+export interface TeamMembershipRequest extends BaseEntity {
+  id: string;
+  teamId: string;
+  userId: string;
+  status: 'pending' | 'approved' | 'rejected';
+  message?: string;
+  user?: User;
+}
+
+// Create team request
+export interface CreateTeamRequest {
+  name: string;
+  description?: string;
+  isPrivate?: boolean;
+}
+
+// Update team request
+export interface UpdateTeamRequest {
+  name?: string;
+  description?: string;
+  isPrivate?: boolean;
+}
+
+// Team member update request
+export interface TeamMemberUpdateRequest {
+  role: TeamRole;
+}
+
 export interface TeamsState {
   teams: Team[];
   currentTeam: Team | null;
   members: TeamMember[];
+  membershipRequests: TeamMembershipRequest[];
   loading: boolean;
   error: string | null;
   success: boolean;

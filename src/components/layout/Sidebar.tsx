@@ -188,12 +188,14 @@ const Sidebar: React.FC = () => {
               Natural Language Query
             </StyledNavLink>
           </NavItem>
+          {/* Teams navigation item removed for now
           <NavItem>
             <StyledNavLink to="/teams" onClick={closeSidebar}>
               <NavIcon>👥</NavIcon>
               Teams
             </StyledNavLink>
           </NavItem>
+          */}
         </NavList>
       </SidebarContainer>
       <ToggleButton onClick={toggleSidebar}>
