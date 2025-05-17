@@ -163,7 +163,6 @@ const MonthlyFocus: React.FC = () => {
         const month = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
         
         const response = await queryAPI.getMonthlySummary(month);
-        console.log('Monthly summary response:', response);
         
         if (response && response.data) {
           setMonthlySummary(response.data);
@@ -171,7 +170,6 @@ const MonthlyFocus: React.FC = () => {
           throw new Error('Invalid response format');
         }
       } catch (err) {
-        console.error('Error fetching monthly summary:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setLoading(false);

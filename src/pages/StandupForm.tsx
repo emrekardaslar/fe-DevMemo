@@ -437,10 +437,8 @@ const StandupForm: React.FC = () => {
   };
   
   const handleToggleHighlight = () => {
-    console.log('Toggle highlight clicked. Current value:', formData.isHighlight);
     setFormData(prev => {
       const newValue = !prev.isHighlight;
-      console.log('Setting isHighlight to:', newValue);
       return {
         ...prev,
         isHighlight: newValue
@@ -493,8 +491,6 @@ const StandupForm: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('Form data before validation:', formData);
-    
     // Check if we need to show the overwrite confirmation
     if (!isEditMode && showOverwriteWarning) {
       setShowOverwriteModal(true);
@@ -520,15 +516,12 @@ const StandupForm: React.FC = () => {
     }
     
     if (!validateForm()) {
-      console.log('Validation failed, errors:', validationErrors);
       return;
     }
     
     if (isEditMode && date) {
-      console.log('Updating standup:', submissionData);
       dispatch(updateStandup(date, submissionData as UpdateStandupDto));
     } else {
-      console.log('Creating standup:', submissionData);
       dispatch(createStandup(submissionData as CreateStandupDto));
     }
     

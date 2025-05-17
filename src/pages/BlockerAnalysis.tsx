@@ -237,7 +237,6 @@ const BlockerAnalysis: React.FC = () => {
       try {
         setLoading(true);
         const response = await queryAPI.getBlockers();
-        console.log('Blocker analysis response:', response);
         
         if (response && response.data) {
           // Transform the backend response to match the expected format
@@ -325,7 +324,7 @@ const BlockerAnalysis: React.FC = () => {
                   trendData.unresolvedCount += 1;
                 }
               } catch (err) {
-                console.error('Error processing date for trend:', err);
+                // Skip trend processing on error
               }
             });
           }
@@ -350,7 +349,6 @@ const BlockerAnalysis: React.FC = () => {
           throw new Error('Invalid response format');
         }
       } catch (err) {
-        console.error('Error fetching blocker analysis:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setLoading(false);
@@ -372,7 +370,6 @@ const BlockerAnalysis: React.FC = () => {
         day: 'numeric'
       });
     } catch (error) {
-      console.error('Error formatting date:', error);
       return 'Invalid Date';
     }
   };

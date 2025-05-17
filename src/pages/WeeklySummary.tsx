@@ -285,7 +285,6 @@ const WeeklySummaryPage: React.FC = () => {
     try {
       setLoading(true);
       const response = await queryAPI.getWeeklySummary(start, end);
-      console.log('Weekly summary response:', response);
       
       if (response && response.data) {
         setWeekData(response.data);
@@ -313,7 +312,6 @@ const WeeklySummaryPage: React.FC = () => {
         throw new Error('Invalid response format');
       }
     } catch (err) {
-      console.error('Error fetching weekly summary:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
@@ -341,7 +339,6 @@ const WeeklySummaryPage: React.FC = () => {
         setPreviousWeekData(null);
       }
     } catch (err) {
-      console.error('Error fetching previous week summary:', err);
       setPreviousWeekData(null);
     }
   };
@@ -388,7 +385,6 @@ const WeeklySummaryPage: React.FC = () => {
         day: 'numeric'
       });
     } catch (error) {
-      console.error('Error formatting date:', error);
       return 'Invalid Date';
     }
   };
@@ -423,7 +419,6 @@ ${weekData.tags.slice(0, 5).map(t => `- ${t.tag} (${t.count})`).join('\n')}
         alert('Summary copied to clipboard!');
       })
       .catch(err => {
-        console.error('Failed to copy summary:', err);
         alert('Failed to copy summary. Please try again.');
       });
   };

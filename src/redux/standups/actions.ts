@@ -102,26 +102,21 @@ export const deleteStandup = (date: string): ThunkAction<void, RootState, unknow
 export const toggleHighlight = (date: string): ThunkAction<void, RootState, unknown, StandupAction> => {
   return async (dispatch, getState) => {
     try {
-      console.log('toggleHighlight action: Starting for date:', date);
       const currentState = getState();
-      console.log('toggleHighlight action: Current standups state:', currentState.standups);
       
       dispatch({ type: StandupActionTypes.TOGGLE_HIGHLIGHT_REQUEST });
       
       // Call the API endpoint
       const response = await standupAPI.toggleHighlight(date);
-      console.log('toggleHighlight action: Got API response:', response);
       
       // Extract standup data from the response
       let standup;
       if (response.data && response.data.success === true && response.data.data) {
         // Response format: { success: true, data: { ...standup } }
         standup = response.data.data;
-        console.log('toggleHighlight action: Extracted nested standup data:', standup);
       } else if (response.data) {
         // Direct standup data or other response format
         standup = response.data;
-        console.log('toggleHighlight action: Using direct standup data:', standup);
       } else {
         throw new Error('Invalid response format from API');
       }
@@ -140,7 +135,6 @@ export const toggleHighlight = (date: string): ThunkAction<void, RootState, unkn
       // Refresh the current standup if we're on the detail page
       const currentStandup = currentState.standups.currentStandup;
       if (currentStandup && currentStandup.date === date) {
-        console.log('toggleHighlight action: Refreshing current standup detail');
         dispatch(fetchStandup(date));
       }
       
@@ -148,7 +142,6 @@ export const toggleHighlight = (date: string): ThunkAction<void, RootState, unkn
       dispatch(fetchStandups());
       
     } catch (error) {
-      console.error('toggleHighlight action error:', error);
       dispatch({
         type: StandupActionTypes.TOGGLE_HIGHLIGHT_FAILURE,
         payload: (error as Error).message

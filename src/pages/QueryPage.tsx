@@ -586,7 +586,6 @@ const QueryPage: React.FC = () => {
     
     try {
       const response = await queryAPI.processQuery(query);
-      console.log('Query API response:', response);
       
       // Store the raw response for debugging
       setRawResponse(response);
@@ -597,7 +596,6 @@ const QueryPage: React.FC = () => {
       // Check if we have a success field in the response
       if (responseData && responseData.success !== undefined) {
         // This is the backend API response format where data is nested
-        console.log('Response contains success field, extracting nested data');
         
         const actualData = responseData.data;
         const result = {
@@ -605,17 +603,14 @@ const QueryPage: React.FC = () => {
           data: actualData
         };
         
-        console.log('Setting result with extracted data:', result);
         setResult(result);
       } else {
         // Direct response format
-        console.log('Setting result directly with:', responseData);
         setResult(responseData);
       }
       
     } catch (error) {
       setError('An error occurred processing your query. Please try again.');
-      console.error('Query error:', error);
     } finally {
       setLoading(false);
     }
@@ -637,8 +632,6 @@ const QueryPage: React.FC = () => {
   
   // Extract tags from data for visualization
   const extractTags = () => {
-    console.log('Extracting tags from:', result?.data); // Debug log
-    
     if (!result || !result.data) return [];
     
     // For weekly summary
@@ -684,8 +677,6 @@ const QueryPage: React.FC = () => {
   
   // Render the summary data based on type
   const renderSummaryData = () => {
-    console.log('Rendering summary data with result:', result);
-    
     // Direct data access - this handles when data is directly on result object (not nested)
     const data = result?.data || {};
     

@@ -205,7 +205,6 @@ const Dashboard: React.FC = () => {
   }, [dispatch]);
   
   const handleToggleHighlight = (date: string) => {
-    console.log('Dashboard: Toggling highlight for date:', date);
     dispatch(toggleHighlight(date));
     
     setRecentStandups(prevStandups => 
@@ -219,7 +218,6 @@ const Dashboard: React.FC = () => {
   
   const handleDelete = (date: string) => {
     if (window.confirm('Are you sure you want to delete this standup?')) {
-      console.log('Dashboard: Deleting standup for date:', date);
       dispatch(deleteStandup(date));
       
       setRecentStandups(prevStandups => 

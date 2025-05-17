@@ -46,7 +46,6 @@ const handleApiError = (error: unknown) => {
     
     // If we have a response with error data
     if (axiosError.response?.data) {
-      console.error('API Error:', axiosError.response.data);
       const responseData = axiosError.response.data;
       
       if (typeof responseData === 'string') {
@@ -62,13 +61,11 @@ const handleApiError = (error: unknown) => {
     
     // If we have a request error but no response (network error)
     if (axiosError.request) {
-      console.error('Network Error:', axiosError.message);
       throw new Error('Network error. Please check your connection and try again.');
     }
   }
   
   // Fallback for non-Axios errors
-  console.error('Unexpected error:', error);
   throw new Error('An unexpected error occurred');
 };
 
@@ -117,7 +114,6 @@ export const standupAPI = {
   // Create new standup
   create: async (standup: CreateStandupDto) => {
     try {
-      console.log('API: Creating standup with data:', standup);
       const response = await api.post('/standups', standup);
       return response.data;
     } catch (error) {
@@ -128,7 +124,6 @@ export const standupAPI = {
   // Update standup
   update: async (date: string, standup: UpdateStandupDto) => {
     try {
-      console.log('API: Updating standup with data:', standup);
       const response = await api.put(`/standups/${date}`, standup);
       return response.data;
     } catch (error) {
@@ -149,22 +144,15 @@ export const standupAPI = {
   // Toggle highlight status
   toggleHighlight: async (date: string) => {
     try {
-      console.log('API: Toggling highlight for date:', date);
-      
       // Use the api instance instead of creating a new axios instance
       // This ensures we use the same baseURL configuration
       const timestamp = new Date().toISOString();
-      console.log(`API: Request started at ${timestamp}`);
       
       const response = await api.patch(`/standups/${date}/highlight`, {}, {
         headers: {
           'X-Request-Time': timestamp
         }
       });
-      
-      console.log(`API: Response received at ${new Date().toISOString()}`);
-      console.log('API: Toggle highlight response status:', response.status);
-      console.log('API: Toggle highlight response data:', response.data);
       
       // Return full response for consistent handling
       return {
@@ -173,7 +161,6 @@ export const standupAPI = {
         data: response.data
       };
     } catch (error) {
-      console.error('API: Toggle highlight error:', error);
       return handleApiError(error);
     }
   },
@@ -251,9 +238,7 @@ export const queryAPI = {
   // Process natural language query
   processQuery: async (query: string) => {
     try {
-      console.log('Sending query to API:', query);
       const response = await api.post('/query', { query });
-      console.log('Raw API response:', response);
       
       // Make sure we return the full response for debugging
       return {
@@ -262,7 +247,6 @@ export const queryAPI = {
         data: response.data
       };
     } catch (error) {
-      console.error('Error in processQuery:', error);
       return handleApiError(error);
     }
   }

@@ -147,9 +147,7 @@ const getProductivityEmoji = (productivity: number): string => {
 };
 
 const StandupCard: React.FC<StandupCardProps> = ({ standup, onToggleHighlight, onDelete }) => {
-  // Add a handler with debug logging
   const handleToggleHighlight = () => {
-    console.log('StandupCard: Toggling highlight for standup:', standup);
     onToggleHighlight(standup.date);
   };
 
