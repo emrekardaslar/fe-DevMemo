@@ -8,11 +8,11 @@ import * as DashboardModule from '../../pages/Dashboard';
 import { StandupActionTypes } from '../../redux/standups/types';
 import { standupAPI } from '../../services/api';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { Dispatch, AnyAction } from 'redux';
+import type { Dispatch, Action } from '@reduxjs/toolkit';
 
 // Define an interface for the Dashboard component props
 interface MockDashboardProps {
-  dispatch: Dispatch<AnyAction>;
+  dispatch: Dispatch<Action>;
 }
 
 // Mock the Dashboard component instead of useEffect to avoid rendering issues

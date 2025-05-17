@@ -1,4 +1,4 @@
-import { ThunkAction } from 'redux-thunk';
+import { ThunkAction } from '@reduxjs/toolkit';
 import { StandupActionTypes, StandupAction, Standup, CreateStandupDto, UpdateStandupDto } from './types';
 import { RootState } from '../store';
 import { standupAPI } from '../../services/api';

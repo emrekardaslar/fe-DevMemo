@@ -1,14 +1,15 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../hooks';
-import { AsyncThunk, ThunkDispatch, AnyAction } from '@reduxjs/toolkit';
+import { AsyncThunk, ThunkDispatch, Action } from '@reduxjs/toolkit';
+import { useState } from 'react';
 
 /**
  * Creates a hook function for simple async thunk operations
  * with standardized error handling and navigation
  */
 export function createOperationHook<ThunkArg = void, ThunkReturn = unknown>(
-  thunk: AsyncThunk<ThunkReturn, ThunkArg, { dispatch: ThunkDispatch<any, any, AnyAction> }>,
+  thunk: AsyncThunk<ThunkReturn, ThunkArg, { dispatch: ThunkDispatch<any, any, Action<string>> }>,
   options?: {
     navigateTo?: string;
     errorHandler?: (error: any) => void;
@@ -17,9 +18,13 @@ export function createOperationHook<ThunkArg = void, ThunkReturn = unknown>(
   return function useThunkOperation() {
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [data, setData] = useState<ThunkReturn | null>(null);
 
     const operation = useCallback(
       async (arg: ThunkArg) => {
+        setLoading(true);
         try {
           const resultAction = await dispatch(thunk(arg as any));
           
@@ -27,166 +32,175 @@ export function createOperationHook<ThunkArg = void, ThunkReturn = unknown>(
             if (options?.navigateTo) {
               navigate(options.navigateTo);
             }
+            setData(resultAction.payload as ThunkReturn);
+            setError(null);
             return resultAction.payload;
           } else if (thunk.rejected.match(resultAction)) {
-            const errorMessage = resultAction.payload as string || 'Operation failed';
-            throw new Error(errorMessage);
+            const errorMessage = resultAction.error.message || 'Operation failed';
+            setError(errorMessage);
+            setData(null);
+            console.error(`Operation failed for thunk ${thunk.typePrefix}:`, errorMessage);
+            return null;
           }
-        } catch (error) {
-          console.error(`Operation failed for thunk ${thunk.typePrefix}:`, error);
-          
-          if (options?.errorHandler) {
-            options.errorHandler(error);
-          } else {
-            throw error;
-          }
+        } catch (err) {
+          setError((err as Error).message);
+          setData(null);
+          console.error(`Unexpected error in thunk ${thunk.typePrefix}:`, err);
+          return null;
+        } finally {
+          setLoading(false);
         }
-        return null;
       },
       [dispatch, navigate]
     );
 
-    return operation;
+    return { execute: operation, loading, error, data };
   };
 }
 
 // Define a simpler type for Redux thunks to avoid TypeScript errors
-type AppThunk<Arg = void, Return = unknown> = AsyncThunk<Return, Arg, { dispatch: ThunkDispatch<any, any, AnyAction> }>;
+type AppThunk<Arg = void, Return = unknown> = AsyncThunk<Return, Arg, { dispatch: ThunkDispatch<any, any, Action<string>> }>;
 
 /**
  * Creates a hook function for a more complex feature with multiple thunks
  */
 export function createFeatureHook<
+  State,
   FetchAllArg = void,
   FetchAllReturn = unknown,
-  FetchOneArg = void,
+  FetchOneArg = string,
   FetchOneReturn = unknown,
-  CreateArg = void,
+  CreateArg = unknown,
   CreateReturn = unknown,
-  UpdateArg = void,
+  UpdateArg = { id: string; data: unknown },
   UpdateReturn = unknown,
-  DeleteArg = void,
+  DeleteArg = string,
   DeleteReturn = unknown
->(
-  fetchAllThunk: AppThunk<FetchAllArg, FetchAllReturn>,
-  fetchOneThunk: AppThunk<FetchOneArg, FetchOneReturn>,
-  createThunk: AppThunk<CreateArg, CreateReturn>,
-  updateThunk: AppThunk<UpdateArg, UpdateReturn>,
-  deleteThunk: AppThunk<DeleteArg, DeleteReturn>,
-  options?: {
-    createNavigateTo?: string;
-    updateNavigateTo?: string;
-    deleteNavigateTo?: string;
-  }
-) {
+>(options: {
+  selectState: (state: any) => State;
+  fetchAllThunk: AppThunk<FetchAllArg, FetchAllReturn>;
+  fetchOneThunk: AppThunk<FetchOneArg, FetchOneReturn>;
+  createThunk: AppThunk<CreateArg, CreateReturn>;
+  updateThunk: AppThunk<UpdateArg, UpdateReturn>;
+  deleteThunk: AppThunk<DeleteArg, DeleteReturn>;
+  navigateOnCreate?: string;
+  navigateOnUpdate?: string;
+  navigateOnDelete?: string;
+}) {
   return function useFeatureOperations() {
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    // Load all
-    const loadAll = useCallback(
-      async (arg: FetchAllArg) => {
-        try {
-          const resultAction = await dispatch(fetchAllThunk(arg as any));
-          if (fetchAllThunk.fulfilled.match(resultAction)) {
-            return resultAction.payload;
-          }
-        } catch (error) {
-          console.error(`Failed to load all:`, error);
+    // Fetch All
+    const fetchAll = async (arg: FetchAllArg) => {
+      setLoading(true);
+      try {
+        const resultAction = await dispatch(options.fetchAllThunk(arg as any));
+        if (options.fetchAllThunk.fulfilled.match(resultAction)) {
+          setError(null);
+          return resultAction.payload;
+        } else {
+          setError(resultAction.error.message || 'Failed to fetch data');
+          return null;
         }
+      } catch (err) {
+        setError((err as Error).message);
         return null;
-      },
-      [dispatch]
-    );
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // Load one
-    const loadOne = useCallback(
-      async (arg: FetchOneArg) => {
-        try {
-          const resultAction = await dispatch(fetchOneThunk(arg as any));
-          if (fetchOneThunk.fulfilled.match(resultAction)) {
-            return resultAction.payload;
-          }
-        } catch (error) {
-          console.error(`Failed to load item:`, error);
+    // Fetch One
+    const fetchOne = async (arg: FetchOneArg) => {
+      setLoading(true);
+      try {
+        const resultAction = await dispatch(options.fetchOneThunk(arg as any));
+        if (options.fetchOneThunk.fulfilled.match(resultAction)) {
+          setError(null);
+          return resultAction.payload;
+        } else {
+          setError(resultAction.error.message || 'Failed to fetch item');
+          return null;
         }
+      } catch (err) {
+        setError((err as Error).message);
         return null;
-      },
-      [dispatch]
-    );
+      } finally {
+        setLoading(false);
+      }
+    };
 
     // Create
-    const create = useCallback(
-      async (arg: CreateArg, navigateAfter = true) => {
-        try {
-          const resultAction = await dispatch(createThunk(arg as any));
-          if (createThunk.fulfilled.match(resultAction)) {
-            if (navigateAfter && options?.createNavigateTo) {
-              navigate(options.createNavigateTo);
-            }
-            return resultAction.payload;
-          } else if (createThunk.rejected.match(resultAction)) {
-            throw new Error(resultAction.payload as string || 'Failed to create');
-          }
-        } catch (error) {
-          console.error('Failed to create:', error);
-          throw error;
+    const create = async (arg: CreateArg) => {
+      setLoading(true);
+      try {
+        const resultAction = await dispatch(options.createThunk(arg as any));
+        if (options.createThunk.fulfilled.match(resultAction)) {
+          setError(null);
+          return resultAction.payload;
+        } else if (options.createThunk.rejected.match(resultAction)) {
+          setError(resultAction.error.message || 'Failed to create item');
+          return null;
         }
+      } catch (err) {
+        setError((err as Error).message);
         return null;
-      },
-      [dispatch, navigate]
-    );
+      } finally {
+        setLoading(false);
+      }
+    };
 
     // Update
-    const update = useCallback(
-      async (arg: UpdateArg, navigateAfter = true) => {
-        try {
-          const resultAction = await dispatch(updateThunk(arg as any));
-          if (updateThunk.fulfilled.match(resultAction)) {
-            if (navigateAfter && options?.updateNavigateTo) {
-              navigate(options.updateNavigateTo);
-            }
-            return resultAction.payload;
-          } else if (updateThunk.rejected.match(resultAction)) {
-            throw new Error(resultAction.payload as string || 'Failed to update');
-          }
-        } catch (error) {
-          console.error(`Failed to update:`, error);
-          throw error;
+    const update = async (arg: UpdateArg) => {
+      setLoading(true);
+      try {
+        const resultAction = await dispatch(options.updateThunk(arg as any));
+        if (options.updateThunk.fulfilled.match(resultAction)) {
+          setError(null);
+          return resultAction.payload;
+        } else if (options.updateThunk.rejected.match(resultAction)) {
+          setError(resultAction.error.message || 'Failed to update item');
+          return null;
         }
+      } catch (err) {
+        setError((err as Error).message);
         return null;
-      },
-      [dispatch, navigate]
-    );
+      } finally {
+        setLoading(false);
+      }
+    };
 
     // Delete
-    const deleteItem = useCallback(
-      async (arg: DeleteArg, navigateAfter = true) => {
-        try {
-          const resultAction = await dispatch(deleteThunk(arg as any));
-          if (deleteThunk.fulfilled.match(resultAction)) {
-            if (navigateAfter && options?.deleteNavigateTo) {
-              navigate(options.deleteNavigateTo);
-            }
-            return true;
-          } else if (deleteThunk.rejected.match(resultAction)) {
-            throw new Error(resultAction.payload as string || 'Failed to delete');
-          }
-        } catch (error) {
-          console.error(`Failed to delete:`, error);
-          throw error;
+    const remove = async (arg: DeleteArg) => {
+      setLoading(true);
+      try {
+        const resultAction = await dispatch(options.deleteThunk(arg as any));
+        if (options.deleteThunk.fulfilled.match(resultAction)) {
+          setError(null);
+          return resultAction.payload;
+        } else if (options.deleteThunk.rejected.match(resultAction)) {
+          setError(resultAction.error.message || 'Failed to delete item');
+          return null;
         }
-        return false;
-      },
-      [dispatch, navigate]
-    );
+      } catch (err) {
+        setError((err as Error).message);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    };
 
     return {
-      loadAll,
-      loadOne,
+      fetchAll,
+      fetchOne,
       create,
       update,
-      delete: deleteItem
+      remove,
+      loading,
+      error
     };
   };
 } 

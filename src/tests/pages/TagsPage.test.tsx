@@ -3,8 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
-import { thunk, ThunkDispatch } from 'redux-thunk';
-import { AnyAction } from 'redux';
+import { type Action } from '@reduxjs/toolkit';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import TagsPage from '../../pages/TagsPage';
@@ -16,9 +15,18 @@ vi.mock('../../redux/standups/actions', () => ({
   fetchStandups: () => ({ type: StandupActionTypes.FETCH_STANDUPS_REQUEST })
 }));
 
-// Create a mock store with thunk middleware
-const middlewares = [thunk as unknown as ThunkDispatch<any, any, AnyAction>];
+// Custom middleware to handle async actions
+const thunkMiddleware = () => (next: any) => (action: any) => {
+  if (typeof action === 'function') {
+    return action(store.dispatch, store.getState);
+  }
+  return next(action);
+};
+
+// Create a mock store with middleware
+const middlewares = [thunkMiddleware];
 const mockStore = configureStore(middlewares);
+let store: ReturnType<typeof mockStore>;
 
 describe('TagsPage Component', () => {
   const mockStandups: Standup[] = [
@@ -70,8 +78,6 @@ describe('TagsPage Component', () => {
       error: null
     }
   };
-
-  let store: ReturnType<typeof mockStore>;
 
   beforeEach(() => {
     store = mockStore(initialState);
