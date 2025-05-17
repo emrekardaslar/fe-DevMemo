@@ -156,7 +156,7 @@ export const standupAPI = {
       const timestamp = new Date().toISOString();
       console.log(`API: Request started at ${timestamp}`);
       
-      const response = await api.patch(`/standups/${date}/highlight`, null, {
+      const response = await api.patch(`/standups/${date}/highlight`, {}, {
         headers: {
           'X-Request-Time': timestamp
         }
