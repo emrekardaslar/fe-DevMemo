@@ -199,19 +199,7 @@ interface BlockerData {
   }>;
 }
 
-// Interface for backend response
-interface BlockerResponseItem {
-  blocker: string;
-  occurrences: number;
-  dates: string[];
-}
 
-// Interface for standup with blockers
-interface StandupWithBlocker {
-  date: string;
-  blockers: string;
-  isBlockerResolved: boolean;
-}
 
 interface BlockerTrend {
   month: string;
@@ -441,7 +429,7 @@ const BlockerAnalysis: React.FC = () => {
                           <YAxis />
                           <Tooltip 
                             formatter={(value: any, name: any, props: any) => [value, props.payload.fullName]} 
-                            labelFormatter={(value) => ''}
+                            labelFormatter={() => ''}
                           />
                           <Bar dataKey="value" fill="#8884d8">
                             {barData.map((entry, index) => (

@@ -1,15 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { useAppSelector } from '../redux/hooks';
-import { useStandupOperations } from '../hooks/useStandupOperations';
-import { 
-  selectAllStandups, 
-  selectStandupsLoading, 
-  selectStandupsError 
-} from '../redux/features/standups/selectors';
+import { useStandups, Standup } from '../context/StandupContext';
 import StandupCard from '../components/standups/StandupCard';
-import { Standup } from '../redux/features/standups/types';
 
 const PageContainer = styled.div`
   max-width: 900px;
@@ -78,41 +71,50 @@ const EmptyMessage = styled.div`
 `;
 
 const StandupList: React.FC = () => {
-  // Use the custom hook for operations
-  const { loadStandups, deleteStandup, toggleHighlight } = useStandupOperations();
-  
-  // Use selectors to get state
-  const standups = useAppSelector(selectAllStandups);
-  const loading = useAppSelector(selectStandupsLoading);
-  const error = useAppSelector(selectStandupsError);
+  // Use the StandupContext
+  const { standups, loading, error, fetchStandups, getHighlights, toggleHighlight, deleteStandup } = useStandups();
   
   const [filter, setFilter] = useState('all');
   
   // Initial data loading
   useEffect(() => {
     const loadData = async () => {
-      const params: Record<string, string> = {};
-      
       if (filter === 'highlights') {
-        params.isHighlight = 'true';
+        try {
+          await getHighlights();
+        } catch (err) {
+          console.error('Error loading highlights:', err);
+        }
+      } else {
+        try {
+          await fetchStandups();
+        } catch (err) {
+          console.error('Error loading standups:', err);
+        }
       }
-      
-      await loadStandups(params);
     };
     
     loadData();
-    // We only include filter as a dependency, loadStandups is removed to prevent infinite loops
+    // We only include filter as a dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
   
-  // Event handlers use the operations directly
+  // Event handlers
   const handleToggleHighlight = async (date: string) => {
-    await toggleHighlight(date);
+    try {
+      await toggleHighlight(date);
+    } catch (err) {
+      console.error('Error toggling highlight:', err);
+    }
   };
   
   const handleDelete = async (date: string) => {
     if (window.confirm('Are you sure you want to delete this standup?')) {
-      await deleteStandup(date);
+      try {
+        await deleteStandup(date);
+      } catch (err) {
+        console.error('Error deleting standup:', err);
+      }
     }
   };
   

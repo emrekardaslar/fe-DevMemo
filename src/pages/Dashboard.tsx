@@ -1,12 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { useAppSelector, useAppDispatch } from '../redux/hooks';
-import { standupAPI } from '../services/api';
+import { useStandups, Standup, StandupStats } from '../context/StandupContext';
 import StandupCard from '../components/standups/StandupCard';
-import { Standup } from '../redux/features/standups/types';
-import { useStandupOperations } from '../hooks/useStandupOperations';
-import { selectAllStandups, selectStandupsLoading } from '../redux/features/standups/selectors';
 
 const PageContainer = styled.div`
   max-width: 1100px;
@@ -148,42 +144,10 @@ const ErrorMessage = styled.div`
   margin-bottom: 1rem;
 `;
 
-interface Stats {
-  totalStandups: number;
-  dateRange: {
-    firstDate: string;
-    lastDate: string;
-    totalDays: number;
-  };
-  tagsStats: {
-    uniqueTagsCount: number;
-    topTags: Array<{ tag: string; count: number }>;
-  };
-  blockersStats: {
-    total: number;
-    percentage: number;
-  };
-  moodStats: {
-    average: number;
-    entriesWithMood: number;
-  };
-  productivityStats: {
-    average: number;
-    entriesWithProductivity: number;
-  };
-  highlights: {
-    count: number;
-    dates: string[];
-  };
-}
-
 const Dashboard: React.FC = () => {
-  const dispatch = useAppDispatch();
-  const standupOperations = useStandupOperations();
-  const standups = useAppSelector(selectAllStandups);
-  const loading = useAppSelector(selectStandupsLoading);
+  const { standups, loading, fetchStandups, toggleHighlight, deleteStandup, getStats } = useStandups();
   
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<StandupStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [recentStandups, setRecentStandups] = useState<Standup[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -191,38 +155,25 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     // This function ensures we only load data once on component mount
     const loadInitialData = async () => {
-      // Load all standups using the operations hook
-      await standupOperations.loadStandups();
-      
-      // Fetch stats
-      setLoadingStats(true);
       try {
-        const response = await standupAPI.getStats();
-        console.log('Stats response:', response);
-        setStats(response);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching stats:', err);
-        setError('Failed to load statistics');
-      } finally {
-        setLoadingStats(false);
-      }
-      
-      // Fetch recent standups
-      try {
-        const response = await standupAPI.getAll();
-        console.log('Recent standups response:', response);
-        // Make sure response is an array before trying to slice it
-        if (Array.isArray(response)) {
-          setRecentStandups(response.slice(0, 3));
+        // Load all standups
+        await fetchStandups();
+        
+        // Fetch stats
+        setLoadingStats(true);
+        try {
+          const statsData = await getStats();
+          setStats(statsData);
           setError(null);
-        } else {
-          console.error('Unexpected response format for standups:', response);
-          setError('Unexpected data format received');
+        } catch (err) {
+          console.error('Error fetching stats:', err);
+          setError('Failed to load statistics');
+        } finally {
+          setLoadingStats(false);
         }
-      } catch (err) {
-        console.error('Error fetching recent standups:', err);
-        setError('Error fetching recent standups');
+      } catch (error) {
+        console.error('Error loading standups:', error);
+        setError('Failed to load standups');
       }
     };
     
@@ -230,16 +181,19 @@ const Dashboard: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
-  // Use the recentStandups if available, or fall back to the Redux store
-  const displayStandups = recentStandups.length > 0 
-    ? recentStandups 
-    : Array.isArray(standups) ? standups.slice(0, 3) : [];
+  // Update recentStandups when standups change
+  useEffect(() => {
+    if (standups && standups.length > 0) {
+      setRecentStandups(standups.slice(0, 3));
+    }
+  }, [standups]);
+  
+  // Use the recentStandups
+  const displayStandups = recentStandups.length > 0 ? recentStandups : [];
   
   const handleToggleHighlight = async (date: string) => {
-    console.log('Dashboard: Toggling highlight for date:', date);
-    
     try {
-      await standupOperations.toggleHighlight(date);
+      await toggleHighlight(date);
       
       // Update the local state to reflect the change
       setRecentStandups(prevStandups => 
@@ -257,10 +211,8 @@ const Dashboard: React.FC = () => {
   
   const handleDelete = async (date: string) => {
     if (window.confirm('Are you sure you want to delete this standup?')) {
-      console.log('Dashboard: Deleting standup for date:', date);
-      
       try {
-        await standupOperations.deleteStandup(date, false);
+        await deleteStandup(date);
         
         // Update the local state to reflect the deletion
         setRecentStandups(prevStandups => 
@@ -387,6 +339,7 @@ const Dashboard: React.FC = () => {
             <SectionTitle>
               <SectionIcon>🏷️</SectionIcon>
               Top Tags
+              <ViewAllLink to="/tags">View All</ViewAllLink>
             </SectionTitle>
             {renderTopTags()}
           </GridSection>

@@ -1,10 +1,10 @@
 import axios, { AxiosError } from 'axios';
-import { Standup, CreateStandupDto, UpdateStandupDto } from '../redux/features/standups/types';
+import { Standup, CreateStandupDto, UpdateStandupDto } from '../context/StandupContext';
 import { 
   LoginCredentials, 
   RegisterCredentials, 
   User 
-} from '../redux/features/auth/types';
+} from '../types/auth';
 
 // Get API URL from Vite env
 const API_URL: string = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
@@ -102,7 +102,6 @@ export const standupAPI = {
   getAll: async (params = {}) => {
     try {
       const response = await api.get('/standups', { params });
-      // Check if the response has a nested data structure
       if (response.data && response.data.success && response.data.data) {
         return response.data.data;
       }
@@ -116,7 +115,6 @@ export const standupAPI = {
   getByDate: async (date: string) => {
     try {
       const response = await api.get(`/standups/${date}`);
-      // Check if the response has a nested data structure
       if (response.data && response.data.success && response.data.data) {
         return response.data.data;
       }
@@ -130,7 +128,6 @@ export const standupAPI = {
   getByDateRange: async (startDate: string, endDate: string) => {
     try {
       const response = await api.get('/standups/range', { params: { startDate, endDate } });
-      // Check if the response has a nested data structure
       if (response.data && response.data.success && response.data.data) {
         return response.data.data;
       }
@@ -144,7 +141,6 @@ export const standupAPI = {
   getHighlights: async () => {
     try {
       const response = await api.get('/standups/highlights');
-      // Check if the response has a nested data structure
       if (response.data && response.data.success && response.data.data) {
         return response.data.data;
       }
@@ -157,9 +153,7 @@ export const standupAPI = {
   // Create new standup
   create: async (standup: CreateStandupDto) => {
     try {
-      console.log('API: Creating standup with data:', standup);
       const response = await api.post('/standups', standup);
-      // Check if the response has a nested data structure
       if (response.data && response.data.success && response.data.data) {
         return response.data.data;
       }
@@ -172,9 +166,7 @@ export const standupAPI = {
   // Update standup
   update: async (date: string, standup: UpdateStandupDto) => {
     try {
-      console.log('API: Updating standup with data:', standup);
       const response = await api.put(`/standups/${date}`, standup);
-      // Check if the response has a nested data structure
       if (response.data && response.data.success && response.data.data) {
         return response.data.data;
       }
@@ -188,7 +180,6 @@ export const standupAPI = {
   delete: async (date: string) => {
     try {
       const response = await api.delete(`/standups/${date}`);
-      // Check if the response has a nested data structure
       if (response.data && response.data.success && response.data.data) {
         return response.data.data;
       }
@@ -201,40 +192,12 @@ export const standupAPI = {
   // Toggle highlight status
   toggleHighlight: async (date: string) => {
     try {
-      console.log('API: Toggling highlight for date:', date);
-      
-      // Use the api instance instead of creating a new axios instance
-      // This ensures we use the same baseURL configuration
-      const timestamp = new Date().toISOString();
-      console.log(`API: Request started at ${timestamp}`);
-      
-      const response = await api.patch(`/standups/${date}/highlight`, {}, {
-        headers: {
-          'X-Request-Time': timestamp
-        }
-      });
-      
-      console.log(`API: Response received at ${new Date().toISOString()}`);
-      console.log('API: Toggle highlight response status:', response.status);
-      console.log('API: Toggle highlight response data:', response.data);
-      
-      // Check if the response has a nested data structure and return the data
+      const response = await api.patch(`/standups/${date}/highlight`);
       if (response.data && response.data.success && response.data.data) {
-        return {
-          status: response.status,
-          statusText: response.statusText,
-          data: response.data.data
-        };
+        return response.data.data;
       }
-      
-      // Return full response for consistent handling
-      return {
-        status: response.status,
-        statusText: response.statusText,
-        data: response.data
-      };
+      return response.data;
     } catch (error) {
-      console.error('API: Toggle highlight error:', error);
       return handleApiError(error);
     }
   },
@@ -762,163 +725,6 @@ export const queryAPI = {
       };
     } catch (error) {
       console.error('Error in processQuery:', error);
-      return handleApiError(error);
-    }
-  }
-};
-
-// Team API services
-export const teamAPI = {
-  // Get all teams
-  getAllTeams: async () => {
-    try {
-      const response = await api.get('/teams');
-      // Check if the response has a nested data structure
-      if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      return response.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  // Get team by ID
-  getTeamById: async (teamId: string) => {
-    try {
-      const response = await api.get(`/teams/${teamId}`);
-      // Check if the response has a nested data structure
-      if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      return response.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  // Create a new team
-  createTeam: async (teamData: import('../redux/features/teams/types').CreateTeamDto) => {
-    try {
-      const response = await api.post('/teams', teamData);
-      // Check if the response has a nested data structure
-      if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      return response.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  // Update a team
-  updateTeam: async (teamId: string, teamData: import('../redux/features/teams/types').UpdateTeamDto) => {
-    try {
-      const response = await api.put(`/teams/${teamId}`, teamData);
-      // Check if the response has a nested data structure
-      if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      return response.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  // Delete a team
-  deleteTeam: async (teamId: string) => {
-    try {
-      const response = await api.delete(`/teams/${teamId}`);
-      // Check if the response has a nested data structure
-      if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      return response.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  // Get team members
-  getTeamMembers: async (teamId: string) => {
-    try {
-      const response = await api.get(`/teams/${teamId}/members`);
-      // Check if the response has a nested data structure
-      if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      return response.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  // Add member to team
-  addTeamMember: async (teamId: string, memberData: import('../redux/features/teams/types').AddTeamMemberDto) => {
-    try {
-      const response = await api.post(`/teams/${teamId}/members`, memberData);
-      // Check if the response has a nested data structure
-      if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      return response.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  // Update member role
-  updateMemberRole: async (teamId: string, memberId: string, roleData: import('../redux/features/teams/types').UpdateMemberRoleDto) => {
-    try {
-      const response = await api.put(`/teams/${teamId}/members/${memberId}`, roleData);
-      // Check if the response has a nested data structure
-      if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      return response.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  // Remove member from team
-  removeTeamMember: async (teamId: string, memberId: string) => {
-    try {
-      const response = await api.delete(`/teams/${teamId}/members/${memberId}`);
-      // Check if the response has a nested data structure
-      if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      return response.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  // Leave team (current user leaves)
-  leaveTeam: async (teamId: string) => {
-    try {
-      const response = await api.delete(`/teams/${teamId}/leave`);
-      // Check if the response has a nested data structure
-      if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      return response.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  // Switch to a different team
-  switchTeam: async (teamId: string) => {
-    try {
-      const response = await api.post(`/teams/${teamId}/switch`);
-      // Check if the response has a nested data structure
-      if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      return response.data;
-    } catch (error) {
       return handleApiError(error);
     }
   }

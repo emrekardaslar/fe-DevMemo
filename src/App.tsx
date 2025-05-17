@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import styled from 'styled-components';
 import Header from './components/layout/Header';
@@ -13,6 +13,7 @@ import TagsPage from './pages/TagsPage';
 import WeeklySummaryPage from './pages/WeeklySummary';
 import BlockerAnalysis from './pages/BlockerAnalysis';
 import MonthlyFocus from './pages/MonthlyFocus';
+import { StandupProvider } from './context/StandupContext';
 // Import statements for Teams pages kept but commented out for future reference
 // import TeamsPage from './pages/TeamsPage';
 // import TeamDetailsPage from './pages/TeamDetailsPage';
@@ -47,33 +48,35 @@ const ContentContainer = styled.main`
 
 const App: React.FC = () => {
   return (
-    <AppContainer>
-      <Header />
-      <MainContainer>
-        <Sidebar />
-        <ContentContainer>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/standups" element={<StandupList />} />
-            <Route path="/standups/new" element={<StandupForm />} />
-            <Route path="/standups/:date" element={<StandupDetail />} />
-            <Route path="/standups/:date/edit" element={<StandupForm />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/query" element={<QueryPage />} />
-            <Route path="/tags" element={<TagsPage />} />
-            <Route path="/weekly-summary" element={<WeeklySummaryPage />} />
-            <Route path="/blocker-analysis" element={<BlockerAnalysis />} />
-            <Route path="/monthly-focus" element={<MonthlyFocus />} />
-            {/* Routes for Teams pages removed but kept as comments for future implementation
-            <Route path="/teams" element={<TeamsPage />} />
-            <Route path="/teams/new" element={<TeamFormPage />} />
-            <Route path="/teams/:teamId" element={<TeamDetailsPage />} />
-            <Route path="/teams/:teamId/edit" element={<TeamFormPage />} />
-            */}
-          </Routes>
-        </ContentContainer>
-      </MainContainer>
-    </AppContainer>
+    <StandupProvider>
+      <AppContainer>
+        <Header />
+        <MainContainer>
+          <Sidebar />
+          <ContentContainer>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/standups" element={<StandupList />} />
+              <Route path="/standups/new" element={<StandupForm />} />
+              <Route path="/standups/:date" element={<StandupDetail />} />
+              <Route path="/standups/:date/edit" element={<StandupForm />} />
+              <Route path="/search" element={<Search />} />
+              <Route path="/query" element={<QueryPage />} />
+              <Route path="/tags" element={<TagsPage />} />
+              <Route path="/weekly-summary" element={<WeeklySummaryPage />} />
+              <Route path="/blocker-analysis" element={<BlockerAnalysis />} />
+              <Route path="/monthly-focus" element={<MonthlyFocus />} />
+              {/* Routes for Teams pages removed but kept as comments for future implementation
+              <Route path="/teams" element={<TeamsPage />} />
+              <Route path="/teams/new" element={<TeamFormPage />} />
+              <Route path="/teams/:teamId" element={<TeamDetailsPage />} />
+              <Route path="/teams/:teamId/edit" element={<TeamFormPage />} />
+              */}
+            </Routes>
+          </ContentContainer>
+        </MainContainer>
+      </AppContainer>
+    </StandupProvider>
   );
 };
 

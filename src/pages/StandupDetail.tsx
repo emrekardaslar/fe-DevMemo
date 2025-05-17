@@ -1,13 +1,8 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { useAppSelector } from '../redux/hooks';
+import { useStandups } from '../context/StandupContext';
 import { useStandupOperations } from '../hooks/useStandupOperations';
-import { 
-  selectCurrentStandup,
-  selectStandupsLoading,
-  selectStandupsError
-} from '../redux/features/standups/selectors';
 
 const PageContainer = styled.div`
   max-width: 800px;
@@ -184,23 +179,37 @@ const StandupDetail: React.FC = () => {
   // Use the custom hook for standup operations
   const { loadStandup, toggleHighlight, deleteStandup } = useStandupOperations();
   
-  // Use selectors to get state
-  const currentStandup = useAppSelector(selectCurrentStandup);
-  const loading = useAppSelector(selectStandupsLoading);
-  const error = useAppSelector(selectStandupsError);
+  // Use the context to get state
+  const { currentStandup, loading, error } = useStandups();
   
   useEffect(() => {
-    if (date) {
-      loadStandup(date);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let isMounted = true;
+    
+    const fetchData = async () => {
+      if (date && isMounted) {
+        try {
+          await loadStandup(date);
+        } catch (error) {
+          console.error(`Error loading standup for date ${date}:`, error);
+        }
+      }
+    };
+    
+    fetchData();
+    
+    return () => {
+      isMounted = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
   
   const handleToggleHighlight = async () => {
-    if (date) {
-      console.log('StandupDetail: Toggling highlight for date:', date);
-      console.log('StandupDetail: Current highlight status:', currentStandup?.isHighlight);
-      await toggleHighlight(date);
+    if (date && currentStandup) {
+      try {
+        await toggleHighlight(date);
+      } catch (error) {
+        console.error(`Error toggling highlight for date ${date}:`, error);
+      }
     }
   };
   

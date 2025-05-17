@@ -1,16 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { useAppSelector } from '../redux/hooks';
+import { useStandups, Standup, CreateStandupDto, UpdateStandupDto } from '../context/StandupContext';
 import { useStandupOperations } from '../hooks/useStandupOperations';
-import { 
-  selectCurrentStandup, 
-  selectStandupsLoading, 
-  selectStandupsError,
-  selectStandupsSuccess,
-  selectAllStandups
-} from '../redux/features/standups/selectors';
-import { Standup, CreateStandupDto, UpdateStandupDto } from '../redux/features/standups/types';
 import TagSelector from '../components/standups/TagSelector';
 
 const FormContainer = styled.div`
@@ -344,22 +336,8 @@ const StandupForm: React.FC = () => {
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
   
-  // Use our custom hook for operations
-  const { 
-    loadStandup, 
-    loadStandups, 
-    createStandup, 
-    updateStandup, 
-    clearCurrentStandup, 
-    resetSuccessState 
-  } = useStandupOperations();
-  
-  // Use selectors for state
-  const currentStandup = useAppSelector(selectCurrentStandup);
-  const standups = useAppSelector(selectAllStandups);
-  const loading = useAppSelector(selectStandupsLoading);
-  const error = useAppSelector(selectStandupsError);
-  const success = useAppSelector(selectStandupsSuccess);
+  const { currentStandup, loading, error, success } = useStandups();
+  const { loadStandup, createStandup, updateStandup, clearCurrentStandup, resetSuccessState } = useStandupOperations();
   
   const isEditing = !!date;
   
@@ -379,59 +357,70 @@ const StandupForm: React.FC = () => {
   const [showOverwriteWarning, setShowOverwriteWarning] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   
-  // Load existing standup data when editing
+  // Fetch standup data when component mounts
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchData = async () => {
+      if (!isMounted) return;
+      
+      resetSuccessState();
+      
       if (isEditing && date) {
-        await loadStandup(date);
+        try {
+          await loadStandup(date);
+        } catch (error) {
+          console.error('Error loading standup:', error);
+        }
       } else {
-        // Load all standups to check for existing entries
-        await loadStandups();
+        // If creating new standup, clear any existing one
         clearCurrentStandup();
       }
     };
     
     fetchData();
     
-    // Cleanup
+    // Cleanup function to prevent state updates after unmount
     return () => {
-      clearCurrentStandup();
-      resetSuccessState();
+      isMounted = false;
     };
-  }, [date, isEditing, loadStandup, loadStandups, clearCurrentStandup, resetSuccessState]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, isEditing]); // Only re-run when date or isEditing changes
   
   // Populate form with current standup data when available
   useEffect(() => {
-    if (currentStandup) {
+    if (currentStandup && Object.keys(currentStandup).length > 0) {
       setFormData({
         date: currentStandup.date,
-        yesterday: currentStandup.yesterday,
-        today: currentStandup.today,
-        blockers: currentStandup.blockers,
-        isBlockerResolved: currentStandup.isBlockerResolved,
-        tags: currentStandup.tags,
-        mood: currentStandup.mood,
-        productivity: currentStandup.productivity,
-        isHighlight: currentStandup.isHighlight
+        yesterday: currentStandup.yesterday || '',
+        today: currentStandup.today || '',
+        blockers: currentStandup.blockers || '',
+        isBlockerResolved: !!currentStandup.isBlockerResolved,
+        tags: Array.isArray(currentStandup.tags) ? currentStandup.tags : [],
+        mood: currentStandup.mood || 3,
+        productivity: currentStandup.productivity || 3,
+        isHighlight: !!currentStandup.isHighlight
       });
     }
   }, [currentStandup]);
   
   // Check for existing standup when date changes
   useEffect(() => {
-    if (standups.length > 0) {
-      const existingStandup = standups.find((s: Standup) => s.date === formData.date);
-      setShowOverwriteWarning(!!existingStandup && !isEditing);
+    // Only set warning if we're in create mode and have a standup with the same date
+    if (!isEditing && currentStandup && currentStandup.date === formData.date) {
+      setShowOverwriteWarning(true);
+    } else {
+      setShowOverwriteWarning(false);
     }
-  }, [formData.date, standups, isEditing]);
+  }, [currentStandup, formData.date, isEditing]);
   
   // Redirect after successful submission
   useEffect(() => {
     if (success) {
       navigate('/standups');
-      resetSuccessState();
     }
-  }, [success, navigate, resetSuccessState]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [success]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -523,10 +512,11 @@ const StandupForm: React.FC = () => {
   const submitForm = async () => {
     try {
       if (isEditing && date) {
-        await updateStandup(date, formData);
+        await updateStandup(date, formData, true);
       } else {
-        await createStandup(formData);
+        await createStandup(formData, true);
       }
+      resetSuccessState();
     } catch (error) {
       console.error('Error submitting form:', error);
     }

@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { RootState } from '../redux/store';
-import { fetchStandups } from '../redux/standups/actions';
-import { useAppDispatch } from '../hooks/useAppDispatch';
-import { Standup } from '../redux/standups/types';
+import { useStandups, Standup } from '../context/StandupContext';
 
 // Types
 interface TagWithCount {
@@ -155,41 +151,43 @@ const EmptyStateTitle = styled.h3`
 `;
 
 const TagsPage: React.FC = () => {
-  const dispatch = useAppDispatch();
-  const { standups, loading } = useSelector((state: RootState) => state.standups);
+  const { standups, loading, fetchStandups } = useStandups();
   const [searchQuery, setSearchQuery] = useState('');
   const [allTags, setAllTags] = useState<TagWithCount[]>([]);
   const [filteredTags, setFilteredTags] = useState<TagWithCount[]>([]);
-  
-  // Fetch all standups on component mount
+
   useEffect(() => {
-    dispatch(fetchStandups());
-  }, [dispatch]);
+    fetchStandups();
+    // Add fetchStandups to the dependency array but prevent infinite loop with a custom cleanup flag
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Process tags from standups
   useEffect(() => {
-    if (standups.length > 0) {
+    if (standups && standups.length > 0) {
       const tagMap = new Map<string, TagWithCount>();
       
       // Process each standup
       standups.forEach(standup => {
         // Process each tag in the standup
-        standup.tags.forEach(tagName => {
-          const tag = tagMap.get(tagName);
-          
-          if (tag) {
-            // Update existing tag
-            tag.count += 1;
-            tag.standups.push(standup);
-          } else {
-            // Create new tag
-            tagMap.set(tagName, {
-              name: tagName,
-              count: 1,
-              standups: [standup]
-            });
-          }
-        });
+        if (standup.tags && Array.isArray(standup.tags)) {
+          standup.tags.forEach(tagName => {
+            const tag = tagMap.get(tagName);
+            
+            if (tag) {
+              // Update existing tag
+              tag.count += 1;
+              tag.standups.push(standup);
+            } else {
+              // Create new tag
+              tagMap.set(tagName, {
+                name: tagName,
+                count: 1,
+                standups: [standup]
+              });
+            }
+          });
+        }
       });
       
       // Convert map to array and sort by count (descending)

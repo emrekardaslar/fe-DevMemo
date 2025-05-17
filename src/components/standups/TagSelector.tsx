@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../redux/store';
+import { useStandups } from '../../context/StandupContext';
 
 // Types
 interface TagSelectorProps {
@@ -115,18 +114,20 @@ const TagSelector: React.FC<TagSelectorProps> = ({ selectedTags, onTagsChange })
   const suggestionsRef = useRef<HTMLUListElement>(null);
   const [mouseDownOnSuggestion, setMouseDownOnSuggestion] = useState(false);
   
-  // Get all standups to extract tags
-  const { standups } = useSelector((state: RootState) => state.standups);
+  // Get all standups from context
+  const { standups } = useStandups();
   
   // Extract unique tags and their counts from all standups
   const allTags = React.useMemo(() => {
     const tagCount = new Map<string, number>();
     
     standups.forEach(standup => {
-      standup.tags.forEach(tag => {
-        const count = tagCount.get(tag) || 0;
-        tagCount.set(tag, count + 1);
-      });
+      if (standup.tags && Array.isArray(standup.tags)) {
+        standup.tags.forEach(tag => {
+          const count = tagCount.get(tag) || 0;
+          tagCount.set(tag, count + 1);
+        });
+      }
     });
     
     return Array.from(tagCount.entries())
