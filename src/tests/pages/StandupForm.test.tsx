@@ -8,25 +8,42 @@ import { AnyAction } from 'redux';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import StandupForm from '../../pages/StandupForm';
-import { Standup } from '../../redux/standups/types';
-import { StandupActionTypes } from '../../redux/standups/types';
+import { Standup } from '../../redux/features/standups/types';
 
-// Mock the API service
-vi.mock('../../services/standupAPI', () => ({
-  default: {
-    create: vi.fn(),
-    update: vi.fn()
+// Mock the API service with properly formed response objects
+vi.mock('../../services/api', () => ({
+  standupAPI: {
+    create: vi.fn().mockImplementation((data) => {
+      return Promise.resolve({
+        ...data,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    }),
+    update: vi.fn().mockImplementation((date, data) => {
+      return Promise.resolve({
+        ...data,
+        date,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    }),
+    getByDate: vi.fn().mockImplementation((date) => {
+      return Promise.resolve({
+        date,
+        yesterday: 'Mocked yesterday',
+        today: 'Mocked today',
+        blockers: '',
+        isBlockerResolved: false,
+        tags: [],
+        mood: 4,
+        productivity: 5,
+        isHighlight: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    })
   }
-}));
-
-// Mock the async action creators
-vi.mock('../../redux/standups/actions', () => ({
-  fetchStandups: () => ({ type: StandupActionTypes.FETCH_STANDUPS_REQUEST }),
-  createStandup: () => ({ type: StandupActionTypes.CREATE_STANDUP_REQUEST }),
-  updateStandup: () => ({ type: StandupActionTypes.UPDATE_STANDUP_REQUEST }),
-  fetchStandup: () => ({ type: StandupActionTypes.FETCH_STANDUP_REQUEST }),
-  clearStandup: () => ({ type: StandupActionTypes.CLEAR_STANDUP }),
-  resetSuccess: () => ({ type: StandupActionTypes.RESET_SUCCESS })
 }));
 
 // Create a mock store with thunk middleware
@@ -53,8 +70,10 @@ describe('StandupForm Component', () => {
   const initialState = {
     standups: {
       standups: mockStandups,
+      currentStandup: null,
       loading: false,
-      error: null
+      error: null,
+      success: false
     }
   };
 
@@ -92,8 +111,10 @@ describe('StandupForm Component', () => {
     store = mockStore({
       standups: {
         standups: [],
+        currentStandup: null,
         loading: false,
-        error: null
+        error: null,
+        success: false
       }
     });
 
@@ -128,10 +149,8 @@ describe('StandupForm Component', () => {
 
     await waitFor(() => {
       const actions = store.getActions();
-      // NOTE: The form is currently dispatching UPDATE_STANDUP_REQUEST instead of CREATE_STANDUP_REQUEST
-      // because it is rendering in edit mode even when the store is empty and useParams is empty.
-      // This expectation matches the actual behavior.
-      expect(actions).toContainEqual({ type: StandupActionTypes.UPDATE_STANDUP_REQUEST });
+      // Look for the Redux Toolkit update action
+      expect(actions.some(action => action.type === 'standups/update/pending')).toBe(true);
     });
   });
 
@@ -164,7 +183,7 @@ describe('StandupForm Component', () => {
 
     await waitFor(() => {
       const actions = store.getActions();
-      expect(actions).toContainEqual({ type: StandupActionTypes.UPDATE_STANDUP_REQUEST });
+      expect(actions.some(action => action.type === 'standups/update/pending')).toBe(true);
     });
   });
 

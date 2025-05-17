@@ -239,118 +239,23 @@ const BlockerAnalysis: React.FC = () => {
         const response = await queryAPI.getBlockers();
         console.log('Blocker analysis response:', response);
         
-        if (response && response.data) {
-          // Transform the backend response to match the expected format
-          const rawBlockers = Array.isArray(response.data) ? response.data as BlockerResponseItem[] : [];
-          
-          // Count total blockers
-          const total = rawBlockers.reduce((sum: number, item: BlockerResponseItem) => sum + (item.occurrences || 0), 0);
+        if (response) {
+          setBlockerData(response);
           
           // Fetch all standups with blockers to check resolved status
           const blockerStandups = await queryAPI.getAllWithBlockers();
+          console.log('Standups with blockers:', blockerStandups);
           
-          // Count resolved and unresolved blockers
-          let resolved = 0;
-          let unresolved = 0;
-          
-          if (blockerStandups && blockerStandups.data) {
-            const standups = blockerStandups.data as StandupWithBlocker[];
-            resolved = standups.filter((s: StandupWithBlocker) => s.isBlockerResolved).length;
-            unresolved = standups.filter((s: StandupWithBlocker) => !s.isBlockerResolved && s.blockers && s.blockers.trim() !== '').length;
+          if (Array.isArray(blockerStandups)) {
+            // Use this data to generate trend information (by month)
+            const monthlyTrends = extractBlockerTrends(blockerStandups);
+            setBlockerTrends(monthlyTrends);
           }
-          
-          // Process the blockers into the expected format
-          const processedData: BlockerData = {
-            total,
-            resolved,
-            unresolved,
-            blockers: [],
-            mostFrequentTerms: []
-          };
-          
-          // Convert to the format expected by the component
-          if (rawBlockers.length > 0) {
-            // Extract blockers
-            processedData.blockers = rawBlockers.flatMap((item: BlockerResponseItem) => {
-              // Each blocker item might have multiple dates
-              return (item.dates || []).map((date: string) => {
-                // Find the standup to determine if it's resolved
-                const standup = blockerStandups?.data?.find((s: StandupWithBlocker) => s.date === date);
-                const resolved = standup ? standup.isBlockerResolved : false;
-                
-                return {
-                  date,
-                  text: item.blocker || '',
-                  resolved
-                };
-              });
-            });
-            
-            // Extract most frequent terms - using the blockers themselves as terms
-            processedData.mostFrequentTerms = rawBlockers
-              .slice(0, 5)
-              .map((item: BlockerResponseItem) => ({
-                term: item.blocker || '',
-                count: item.occurrences || 0
-              }));
-          }
-
-          // Generate trend data by grouping by month
-          const trendMap = new Map<string, BlockerTrend>();
-
-          if (blockerStandups && blockerStandups.data) {
-            const standups = blockerStandups.data as StandupWithBlocker[];
-            
-            standups.forEach((standup: StandupWithBlocker) => {
-              try {
-                const date = new Date(standup.date);
-                const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-                const monthName = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-                
-                if (!trendMap.has(monthKey)) {
-                  trendMap.set(monthKey, {
-                    month: monthName,
-                    count: 0,
-                    resolvedCount: 0,
-                    unresolvedCount: 0
-                  });
-                }
-                
-                const trendData = trendMap.get(monthKey)!;
-                trendData.count += 1;
-                
-                if (standup.isBlockerResolved) {
-                  trendData.resolvedCount += 1;
-                } else {
-                  trendData.unresolvedCount += 1;
-                }
-              } catch (err) {
-                console.error('Error processing date for trend:', err);
-              }
-            });
-          }
-          
-          // Convert map to array and sort by date
-          const trends = Array.from(trendMap.values());
-          trends.sort((a, b) => {
-            const [monthA, yearA] = a.month.split(' ');
-            const [monthB, yearB] = b.month.split(' ');
-            
-            if (yearA !== yearB) {
-              return yearA.localeCompare(yearB);
-            }
-            
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            return monthNames.indexOf(monthA) - monthNames.indexOf(monthB);
-          });
-          
-          setBlockerTrends(trends);
-          setBlockerData(processedData);
         } else {
           throw new Error('Invalid response format');
         }
       } catch (err) {
-        console.error('Error fetching blocker analysis:', err);
+        console.error('Error fetching blocker data:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setLoading(false);
@@ -610,6 +515,55 @@ const BlockerAnalysis: React.FC = () => {
       </Card>
     </PageContainer>
   );
+};
+
+// Helper function to extract blocker trends from standups
+const extractBlockerTrends = (standups: any[]): BlockerTrend[] => {
+  const trendMap = new Map<string, BlockerTrend>();
+  
+  standups.forEach((standup) => {
+    try {
+      const date = new Date(standup.date);
+      const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+      const monthName = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      
+      if (!trendMap.has(monthKey)) {
+        trendMap.set(monthKey, {
+          month: monthName,
+          count: 0,
+          resolvedCount: 0,
+          unresolvedCount: 0
+        });
+      }
+      
+      const trendData = trendMap.get(monthKey)!;
+      trendData.count += 1;
+      
+      if (standup.isBlockerResolved) {
+        trendData.resolvedCount += 1;
+      } else {
+        trendData.unresolvedCount += 1;
+      }
+    } catch (err) {
+      console.error('Error processing date for trend:', err);
+    }
+  });
+  
+  // Convert map to array and sort by date
+  const trends = Array.from(trendMap.values());
+  trends.sort((a, b) => {
+    const [monthA, yearA] = a.month.split(' ');
+    const [monthB, yearB] = b.month.split(' ');
+    
+    if (yearA !== yearB) {
+      return yearA.localeCompare(yearB);
+    }
+    
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return monthNames.indexOf(monthA) - monthNames.indexOf(monthB);
+  });
+  
+  return trends;
 };
 
 export default BlockerAnalysis; 

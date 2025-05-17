@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { Standup } from '../../redux/standups/types';
+import { Standup } from '../../redux/features/standups/types';
 
 interface StandupCardProps {
   standup: Standup;
@@ -192,7 +192,7 @@ const StandupCard: React.FC<StandupCardProps> = ({ standup, onToggleHighlight, o
         </Section>
       )}
       
-      {standup.tags.length > 0 && (
+      {standup.tags && standup.tags.length > 0 && (
         <TagContainer>
           {standup.tags.map((tag, index) => (
             <Tag key={index}>#{tag}</Tag>

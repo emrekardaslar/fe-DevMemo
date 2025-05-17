@@ -13,6 +13,9 @@ import TagsPage from './pages/TagsPage';
 import WeeklySummaryPage from './pages/WeeklySummary';
 import BlockerAnalysis from './pages/BlockerAnalysis';
 import MonthlyFocus from './pages/MonthlyFocus';
+import TeamsPage from './pages/TeamsPage';
+import TeamDetailsPage from './pages/TeamDetailsPage';
+import TeamFormPage from './pages/TeamFormPage';
 
 const AppContainer = styled.div`
   display: flex;
@@ -60,6 +63,10 @@ const App: React.FC = () => {
             <Route path="/weekly-summary" element={<WeeklySummaryPage />} />
             <Route path="/blocker-analysis" element={<BlockerAnalysis />} />
             <Route path="/monthly-focus" element={<MonthlyFocus />} />
+            <Route path="/teams" element={<TeamsPage />} />
+            <Route path="/teams/new" element={<TeamFormPage />} />
+            <Route path="/teams/:teamId" element={<TeamDetailsPage />} />
+            <Route path="/teams/:teamId/edit" element={<TeamFormPage />} />
           </Routes>
         </ContentContainer>
       </MainContainer>

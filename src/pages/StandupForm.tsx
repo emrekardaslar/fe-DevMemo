@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
 import styled from 'styled-components';
-import { fetchStandup, createStandup, updateStandup, clearStandup, resetSuccess, fetchStandups } from '../redux/standups/actions';
-import { RootState } from '../redux/store';
-import { useAppDispatch } from '../hooks/useAppDispatch';
-import { Standup, CreateStandupDto, UpdateStandupDto } from '../redux/standups/types';
+import { useAppSelector } from '../redux/hooks';
+import { useStandupOperations } from '../hooks/useStandupOperations';
+import { 
+  selectCurrentStandup, 
+  selectStandupsLoading, 
+  selectStandupsError,
+  selectStandupsSuccess,
+  selectAllStandups
+} from '../redux/features/standups/selectors';
+import { Standup, CreateStandupDto, UpdateStandupDto } from '../redux/features/standups/types';
 import TagSelector from '../components/standups/TagSelector';
 
 const FormContainer = styled.div`
@@ -338,93 +343,102 @@ const ConfirmModalButton = styled.button`
 const StandupForm: React.FC = () => {
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const { currentStandup, standups, loading, error, success } = useSelector((state: RootState) => state.standups);
-
   
+  // Use our custom hook for operations
+  const { 
+    loadStandup, 
+    loadStandups, 
+    createStandup, 
+    updateStandup, 
+    clearCurrentStandup, 
+    resetSuccessState 
+  } = useStandupOperations();
+  
+  // Use selectors for state
+  const currentStandup = useAppSelector(selectCurrentStandup);
+  const standups = useAppSelector(selectAllStandups);
+  const loading = useAppSelector(selectStandupsLoading);
+  const error = useAppSelector(selectStandupsError);
+  const success = useAppSelector(selectStandupsSuccess);
+  
+  const isEditing = !!date;
+  
+  // Form state
   const [formData, setFormData] = useState<CreateStandupDto>({
-    date: new Date().toISOString().split('T')[0], // Default to today
+    date: new Date().toISOString().split('T')[0],
     yesterday: '',
     today: '',
     blockers: '',
     isBlockerResolved: false,
     tags: [],
-    mood: 0,
-    productivity: 0,
+    mood: 3,
+    productivity: 3,
     isHighlight: false
   });
-
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  
   const [showOverwriteWarning, setShowOverwriteWarning] = useState(false);
-  const [showOverwriteModal, setShowOverwriteModal] = useState(false);
-  const isEditMode = Boolean(date);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   
-  // Fetch all standups for existing date check
+  // Load existing standup data when editing
   useEffect(() => {
-    if (!isEditMode) {
-      dispatch(fetchStandups());
-    }
-  }, [dispatch, isEditMode]);
-  
-  // Fetch standup data when in edit mode
-  useEffect(() => {
-    if (isEditMode && date) {
-      dispatch(fetchStandup(date));
-    } else {
-      dispatch(clearStandup());
-    }
-    
-    return () => {
-      dispatch(clearStandup());
-      dispatch(resetSuccess());
+    const fetchData = async () => {
+      if (isEditing && date) {
+        await loadStandup(date);
+      } else {
+        // Load all standups to check for existing entries
+        await loadStandups();
+        clearCurrentStandup();
+      }
     };
-  }, [dispatch, isEditMode, date]);
+    
+    fetchData();
+    
+    // Cleanup
+    return () => {
+      clearCurrentStandup();
+      resetSuccessState();
+    };
+  }, [date, isEditing, loadStandup, loadStandups, clearCurrentStandup, resetSuccessState]);
   
-  // Update form data when currentStandup changes
+  // Populate form with current standup data when available
   useEffect(() => {
-    if (currentStandup && isEditMode) {
+    if (currentStandup) {
       setFormData({
         date: currentStandup.date,
         yesterday: currentStandup.yesterday,
         today: currentStandup.today,
         blockers: currentStandup.blockers,
-        isBlockerResolved: currentStandup.isBlockerResolved || false,
-        tags: currentStandup.tags || [],
+        isBlockerResolved: currentStandup.isBlockerResolved,
+        tags: currentStandup.tags,
         mood: currentStandup.mood,
         productivity: currentStandup.productivity,
         isHighlight: currentStandup.isHighlight
       });
     }
-  }, [currentStandup, isEditMode]);
+  }, [currentStandup]);
   
-  // Redirect on success
+  // Check for existing standup when date changes
+  useEffect(() => {
+    if (standups.length > 0) {
+      const existingStandup = standups.find((s: Standup) => s.date === formData.date);
+      setShowOverwriteWarning(!!existingStandup && !isEditing);
+    }
+  }, [formData.date, standups, isEditing]);
+  
+  // Redirect after successful submission
   useEffect(() => {
     if (success) {
-      if (isEditMode) {
-        navigate(`/standups/${formData.date}`);
-      } else {
-        navigate('/standups');
-      }
-      dispatch(resetSuccess());
+      navigate('/standups');
+      resetSuccessState();
     }
-  }, [success, navigate, dispatch, isEditMode, formData.date]);
-  
-  // Check if standup already exists for selected date
-  useEffect(() => {
-    if (!isEditMode && standups.length > 0) {
-      const existingStandup = standups.find(s => s.date === formData.date);
-      setShowOverwriteWarning(!!existingStandup);
-    } else {
-      setShowOverwriteWarning(false);
-    }
-  }, [formData.date, standups, isEditMode]);
+  }, [success, navigate, resetSuccessState]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     // Clear validation error when field is changed
-    if (validationErrors[name]) {
-      setValidationErrors(prev => ({ ...prev, [name]: '' }));
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
   
@@ -486,62 +500,41 @@ const StandupForm: React.FC = () => {
       errors.productivity = 'Productivity rating must be between 1 and 5';
     }
     
-    setValidationErrors(errors);
+    setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('Form data before validation:', formData);
-    
-    // Check if we need to show the overwrite confirmation
-    if (!isEditMode && showOverwriteWarning) {
-      setShowOverwriteModal(true);
+    if (!validateForm()) {
       return;
     }
     
-    submitForm();
+    if (showOverwriteWarning) {
+      if (window.confirm('A standup for this date already exists. Do you want to overwrite it?')) {
+        submitForm();
+      }
+    } else {
+      submitForm();
+    }
   };
   
-  const submitForm = () => {
-    // Prepare submission data
-    const submissionData: CreateStandupDto | UpdateStandupDto = {
-      ...formData
-    };
-    
-    // If mood or productivity is 0 (not rated), don't send it to the backend
-    if (formData.mood === 0) {
-      delete submissionData.mood;
+  const submitForm = async () => {
+    try {
+      if (isEditing && date) {
+        await updateStandup(date, formData);
+      } else {
+        await createStandup(formData);
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
     }
-    
-    if (formData.productivity === 0) {
-      delete submissionData.productivity;
-    }
-    
-    if (!validateForm()) {
-      console.log('Validation failed, errors:', validationErrors);
-      return;
-    }
-    
-    if (isEditMode && date) {
-      console.log('Updating standup:', submissionData);
-      dispatch(updateStandup(date, submissionData as UpdateStandupDto));
-    } else {
-      console.log('Creating standup:', submissionData);
-      dispatch(createStandup(submissionData as CreateStandupDto));
-    }
-    
-    // Close the modal if it was open
-    setShowOverwriteModal(false);
   };
   
   const handleCancel = () => {
-    if (isEditMode && date) {
-      navigate(`/standups/${date}`);
-    } else {
-      navigate('/standups');
-    }
+    clearCurrentStandup();
+    navigate('/standups');
   };
   
   // Helper to render rating options
@@ -574,8 +567,8 @@ const StandupForm: React.FC = () => {
   return (
     <FormContainer>
       <PageHeader>
-        <Title>{isEditMode ? 'Edit Standup' : 'New Standup'}</Title>
-        <Subtitle>{isEditMode ? 'Update your standup entry' : 'Create a new standup entry'}</Subtitle>
+        <Title>{isEditing ? 'Edit Standup' : 'New Standup'}</Title>
+        <Subtitle>{isEditing ? 'Update your standup entry' : 'Create a new standup entry'}</Subtitle>
       </PageHeader>
       
       <Form onSubmit={handleSubmit}>
@@ -587,10 +580,10 @@ const StandupForm: React.FC = () => {
             name="date"
             value={formData.date}
             onChange={handleChange}
-            disabled={isEditMode}
+            disabled={isEditing}
           />
-          {validationErrors.date && <ErrorMessage>{validationErrors.date}</ErrorMessage>}
-          {showOverwriteWarning && !isEditMode && (
+          {formErrors.date && <ErrorMessage>{formErrors.date}</ErrorMessage>}
+          {showOverwriteWarning && !isEditing && (
             <WarningMessage>
               <WarningIcon>⚠️</WarningIcon>
               A standup entry already exists for this date. Creating a new one will overwrite it.
@@ -607,7 +600,7 @@ const StandupForm: React.FC = () => {
             onChange={handleChange}
             placeholder="* Fixed bug in authentication flow&#10;* Implemented new dashboard UI&#10;* Reviewed PR from team"
           />
-          {validationErrors.yesterday && <ErrorMessage>{validationErrors.yesterday}</ErrorMessage>}
+          {formErrors.yesterday && <ErrorMessage>{formErrors.yesterday}</ErrorMessage>}
         </FormGroup>
         
         <FormGroup>
@@ -619,7 +612,7 @@ const StandupForm: React.FC = () => {
             onChange={handleChange}
             placeholder="* Complete the API integration&#10;* Start working on the analytics feature&#10;* Prepare for the demo"
           />
-          {validationErrors.today && <ErrorMessage>{validationErrors.today}</ErrorMessage>}
+          {formErrors.today && <ErrorMessage>{formErrors.today}</ErrorMessage>}
         </FormGroup>
         
         <FormGroup>
@@ -662,7 +655,7 @@ const StandupForm: React.FC = () => {
           <RatingOptions>
             {renderRatingOptions('mood')}
           </RatingOptions>
-          {validationErrors.mood && <ErrorMessage>{validationErrors.mood}</ErrorMessage>}
+          {formErrors.mood && <ErrorMessage>{formErrors.mood}</ErrorMessage>}
         </RatingContainer>
         
         <RatingContainer>
@@ -670,7 +663,7 @@ const StandupForm: React.FC = () => {
           <RatingOptions>
             {renderRatingOptions('productivity')}
           </RatingOptions>
-          {validationErrors.productivity && <ErrorMessage>{validationErrors.productivity}</ErrorMessage>}
+          {formErrors.productivity && <ErrorMessage>{formErrors.productivity}</ErrorMessage>}
         </RatingContainer>
         
         <ToggleContainer>
@@ -694,32 +687,10 @@ const StandupForm: React.FC = () => {
             Cancel
           </CancelButton>
           <SubmitButton type="submit" disabled={loading}>
-            {loading ? 'Saving...' : (isEditMode ? 'Update Standup' : 'Create Standup')}
+            {loading ? 'Saving...' : (isEditing ? 'Update Standup' : 'Create Standup')}
           </SubmitButton>
         </ButtonContainer>
       </Form>
-      
-      {/* Overwrite Confirmation Modal */}
-      {showOverwriteModal && (
-        <ModalOverlay>
-          <ModalContent>
-            <ModalTitle>Warning: Overwrite Existing Standup</ModalTitle>
-            <ModalText>
-              A standup entry already exists for {formData.date}. 
-              If you continue, the existing entry will be permanently overwritten.
-              Are you sure you want to proceed?
-            </ModalText>
-            <ModalButtons>
-              <CancelModalButton onClick={() => setShowOverwriteModal(false)}>
-                Cancel
-              </CancelModalButton>
-              <ConfirmModalButton onClick={submitForm}>
-                Overwrite
-              </ConfirmModalButton>
-            </ModalButtons>
-          </ModalContent>
-        </ModalOverlay>
-      )}
     </FormContainer>
   );
 };

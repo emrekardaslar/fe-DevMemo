@@ -1,19 +1,27 @@
-import { createStore, applyMiddleware, combineReducers } from 'redux';
-import { thunk, ThunkDispatch } from 'redux-thunk';
-import standupReducer from './standups/reducer';
-import { StandupAction } from './standups/types';
+import { configureStore } from '@reduxjs/toolkit';
+import standupReducer from './features/standups/standupSlice';
+import uiReducer from './features/ui/uiSlice';
+import authReducer from './features/auth/authSlice';
+import teamReducer from './features/teams/teamSlice';
 
-const rootReducer = combineReducers({
-  standups: standupReducer
+// Define the root state type
+export interface RootState {
+  standups: ReturnType<typeof standupReducer>;
+  ui: ReturnType<typeof uiReducer>;
+  auth: ReturnType<typeof authReducer>;
+  teams: ReturnType<typeof teamReducer>;
+}
+
+export const store = configureStore({
+  reducer: {
+    standups: standupReducer,
+    ui: uiReducer,
+    auth: authReducer,
+    teams: teamReducer,
+  },
+  // Enable Redux DevTools extension
+  devTools: process.env.NODE_ENV !== 'production',
 });
 
-export type RootState = ReturnType<typeof rootReducer>;
-export type AppDispatch = ThunkDispatch<RootState, unknown, StandupAction>;
-
-const store = createStore(
-  rootReducer as typeof rootReducer,
-  undefined,
-  applyMiddleware(thunk)
-);
-
-export default store; 
+// Export types for use throughout the app
+export type AppDispatch = typeof store.dispatch; 

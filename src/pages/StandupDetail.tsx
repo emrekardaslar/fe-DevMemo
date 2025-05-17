@@ -1,10 +1,13 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useSelector } from 'react-redux';
 import styled from 'styled-components';
-import { fetchStandup, toggleHighlight, deleteStandup } from '../redux/standups/actions';
-import { RootState } from '../redux/store';
-import { useAppDispatch } from '../hooks/useAppDispatch';
+import { useAppSelector } from '../redux/hooks';
+import { useStandupOperations } from '../hooks/useStandupOperations';
+import { 
+  selectCurrentStandup,
+  selectStandupsLoading,
+  selectStandupsError
+} from '../redux/features/standups/selectors';
 
 const PageContainer = styled.div`
   max-width: 800px;
@@ -177,27 +180,34 @@ const getProductivityEmoji = (productivity: number): string => {
 const StandupDetail: React.FC = () => {
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const { currentStandup, loading, error } = useSelector((state: RootState) => state.standups);
+  
+  // Use the custom hook for standup operations
+  const { loadStandup, toggleHighlight, deleteStandup } = useStandupOperations();
+  
+  // Use selectors to get state
+  const currentStandup = useAppSelector(selectCurrentStandup);
+  const loading = useAppSelector(selectStandupsLoading);
+  const error = useAppSelector(selectStandupsError);
   
   useEffect(() => {
     if (date) {
-      dispatch(fetchStandup(date));
+      loadStandup(date);
     }
-  }, [dispatch, date]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date]);
   
-  const handleToggleHighlight = () => {
+  const handleToggleHighlight = async () => {
     if (date) {
       console.log('StandupDetail: Toggling highlight for date:', date);
       console.log('StandupDetail: Current highlight status:', currentStandup?.isHighlight);
-      dispatch(toggleHighlight(date));
+      await toggleHighlight(date);
     }
   };
   
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this standup?')) {
       if (date) {
-        dispatch(deleteStandup(date));
+        await deleteStandup(date);
         navigate('/standups');
       }
     }
@@ -255,9 +265,9 @@ const StandupDetail: React.FC = () => {
           </Section>
         )}
         
-        {currentStandup.tags.length > 0 && (
+        {currentStandup.tags && currentStandup.tags.length > 0 && (
           <TagContainer>
-            {currentStandup.tags.map((tag: string, index: number) => (
+            {currentStandup.tags.map((tag, index) => (
               <Tag key={index}>#{tag}</Tag>
             ))}
           </TagContainer>
@@ -278,10 +288,12 @@ const StandupDetail: React.FC = () => {
             </MetadataItem>
           )}
           
-          <MetadataItem>
-            <MetadataIcon>📅</MetadataIcon>
-            Created: {new Date(currentStandup.createdAt).toLocaleDateString()}
-          </MetadataItem>
+          {currentStandup.isBlockerResolved !== undefined && currentStandup.blockers && (
+            <MetadataItem>
+              <MetadataIcon>{currentStandup.isBlockerResolved ? '✅' : '⚠️'}</MetadataIcon>
+              Blocker {currentStandup.isBlockerResolved ? 'resolved' : 'unresolved'}
+            </MetadataItem>
+          )}
         </MetadataContainer>
       </Card>
     </PageContainer>

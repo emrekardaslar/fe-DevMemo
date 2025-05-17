@@ -287,30 +287,29 @@ const WeeklySummaryPage: React.FC = () => {
       const response = await queryAPI.getWeeklySummary(start, end);
       console.log('Weekly summary response:', response);
       
-      if (response && response.data) {
-        setWeekData(response.data);
+      if (!response) {
+        throw new Error('No data received from API');
+      }
+      
+      // Set the weekly data
+      setWeekData(response);
+      
+      // Prepare chart data from standups
+      if (response.standups && Array.isArray(response.standups.dates)) {
+        const dates = response.standups.dates;
+        const moodData = response.mood?.data || [];
+        const productivityData = response.productivity?.data || [];
         
-        // Prepare chart data from standups
-        if (response.data.standups && Array.isArray(response.data.standups.dates)) {
-          const dates = response.data.standups.dates || [];
-          const moodData = response.data.mood?.data || [];
-          const productivityData = response.data.productivity?.data || [];
-          
-          const preparedData = dates.map((date: string, index: number) => {
-            return {
-              name: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
-              fullDate: date,
-              mood: moodData[index] || 0,
-              productivity: productivityData[index] || 0
-            };
-          });
-          
-          setChartData(preparedData);
-        } else {
-          setChartData([]);
-        }
+        const preparedData = dates.map((date: string, index: number) => ({
+          name: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
+          fullDate: date,
+          mood: moodData[index] || 0,
+          productivity: productivityData[index] || 0
+        }));
+        
+        setChartData(preparedData);
       } else {
-        throw new Error('Invalid response format');
+        setChartData([]);
       }
     } catch (err) {
       console.error('Error fetching weekly summary:', err);
@@ -335,8 +334,8 @@ const WeeklySummaryPage: React.FC = () => {
       
       const response = await queryAPI.getWeeklySummary(prevStart, prevEnd);
       
-      if (response && response.data) {
-        setPreviousWeekData(response.data);
+      if (response) {
+        setPreviousWeekData(response);
       } else {
         setPreviousWeekData(null);
       }

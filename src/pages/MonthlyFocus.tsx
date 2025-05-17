@@ -165,8 +165,8 @@ const MonthlyFocus: React.FC = () => {
         const response = await queryAPI.getMonthlySummary(month);
         console.log('Monthly summary response:', response);
         
-        if (response && response.data) {
-          setMonthlySummary(response.data);
+        if (response) {
+          setMonthlySummary(response);
         } else {
           throw new Error('Invalid response format');
         }

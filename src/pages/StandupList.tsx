@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { fetchStandups, toggleHighlight, deleteStandup } from '../redux/standups/actions';
-import { RootState } from '../redux/store';
-import { useAppDispatch } from '../hooks/useAppDispatch';
+import { useAppSelector } from '../redux/hooks';
+import { useStandupOperations } from '../hooks/useStandupOperations';
+import { 
+  selectAllStandups, 
+  selectStandupsLoading, 
+  selectStandupsError 
+} from '../redux/features/standups/selectors';
 import StandupCard from '../components/standups/StandupCard';
-import { Standup } from '../redux/standups/types';
+import { Standup } from '../redux/features/standups/types';
 
 const PageContainer = styled.div`
   max-width: 900px;
@@ -75,27 +78,41 @@ const EmptyMessage = styled.div`
 `;
 
 const StandupList: React.FC = () => {
-  const dispatch = useAppDispatch();
-  const { standups, loading, error } = useSelector((state: RootState) => state.standups);
+  // Use the custom hook for operations
+  const { loadStandups, deleteStandup, toggleHighlight } = useStandupOperations();
+  
+  // Use selectors to get state
+  const standups = useAppSelector(selectAllStandups);
+  const loading = useAppSelector(selectStandupsLoading);
+  const error = useAppSelector(selectStandupsError);
+  
   const [filter, setFilter] = useState('all');
   
+  // Initial data loading
   useEffect(() => {
-    const params: Record<string, string> = {};
+    const loadData = async () => {
+      const params: Record<string, string> = {};
+      
+      if (filter === 'highlights') {
+        params.isHighlight = 'true';
+      }
+      
+      await loadStandups(params);
+    };
     
-    if (filter === 'highlights') {
-      params.isHighlight = 'true';
-    }
-    
-    dispatch(fetchStandups(params));
-  }, [dispatch, filter]);
+    loadData();
+    // We only include filter as a dependency, loadStandups is removed to prevent infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
   
-  const handleToggleHighlight = (date: string) => {
-    dispatch(toggleHighlight(date));
+  // Event handlers use the operations directly
+  const handleToggleHighlight = async (date: string) => {
+    await toggleHighlight(date);
   };
   
-  const handleDelete = (date: string) => {
+  const handleDelete = async (date: string) => {
     if (window.confirm('Are you sure you want to delete this standup?')) {
-      dispatch(deleteStandup(date));
+      await deleteStandup(date);
     }
   };
   

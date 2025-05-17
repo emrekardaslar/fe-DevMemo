@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { fetchStandups, toggleHighlight, deleteStandup } from '../redux/standups/actions';
-import { RootState } from '../redux/store';
-import { useAppDispatch } from '../hooks/useAppDispatch';
-import { standupAPI, queryAPI } from '../services/api';
+import { useAppSelector, useAppDispatch } from '../redux/hooks';
+import { standupAPI } from '../services/api';
 import StandupCard from '../components/standups/StandupCard';
-import { Standup } from '../redux/standups/types';
+import { Standup } from '../redux/features/standups/types';
+import { useStandupOperations } from '../hooks/useStandupOperations';
+import { selectAllStandups, selectStandupsLoading } from '../redux/features/standups/selectors';
 
 const PageContainer = styled.div`
   max-width: 1100px;
@@ -140,6 +139,15 @@ const LoadingMessage = styled.div`
   color: var(--text-secondary);
 `;
 
+const ErrorMessage = styled.div`
+  text-align: center;
+  padding: 1rem;
+  color: var(--error-color);
+  background-color: rgba(231, 76, 60, 0.1);
+  border-radius: 4px;
+  margin-bottom: 1rem;
+`;
+
 interface Stats {
   totalStandups: number;
   dateRange: {
@@ -171,66 +179,107 @@ interface Stats {
 
 const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { standups, loading } = useSelector((state: RootState) => state.standups);
+  const standupOperations = useStandupOperations();
+  const standups = useAppSelector(selectAllStandups);
+  const loading = useAppSelector(selectStandupsLoading);
+  
   const [stats, setStats] = useState<Stats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [recentStandups, setRecentStandups] = useState<Standup[]>([]);
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
-    dispatch(fetchStandups());
-    
-    const fetchStats = async () => {
+    // This function ensures we only load data once on component mount
+    const loadInitialData = async () => {
+      // Load all standups using the operations hook
+      await standupOperations.loadStandups();
+      
+      // Fetch stats
       setLoadingStats(true);
       try {
         const response = await standupAPI.getStats();
-        setStats(response.data);
-      } catch (error) {
-        console.error('Error fetching stats:', error);
+        console.log('Stats response:', response);
+        setStats(response);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching stats:', err);
+        setError('Failed to load statistics');
       } finally {
         setLoadingStats(false);
       }
-    };
-    
-    const fetchRecentStandups = async () => {
+      
+      // Fetch recent standups
       try {
         const response = await standupAPI.getAll();
-        setRecentStandups(response.data.slice(0, 3));
-      } catch (error) {
-        console.error('Error fetching recent standups:', error);
+        console.log('Recent standups response:', response);
+        // Make sure response is an array before trying to slice it
+        if (Array.isArray(response)) {
+          setRecentStandups(response.slice(0, 3));
+          setError(null);
+        } else {
+          console.error('Unexpected response format for standups:', response);
+          setError('Unexpected data format received');
+        }
+      } catch (err) {
+        console.error('Error fetching recent standups:', err);
+        setError('Error fetching recent standups');
       }
     };
     
-    fetchStats();
-    fetchRecentStandups();
-  }, [dispatch]);
+    loadInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
-  const handleToggleHighlight = (date: string) => {
+  // Use the recentStandups if available, or fall back to the Redux store
+  const displayStandups = recentStandups.length > 0 
+    ? recentStandups 
+    : Array.isArray(standups) ? standups.slice(0, 3) : [];
+  
+  const handleToggleHighlight = async (date: string) => {
     console.log('Dashboard: Toggling highlight for date:', date);
-    dispatch(toggleHighlight(date));
     
-    setRecentStandups(prevStandups => 
-      prevStandups.map(standup => 
-        standup.date === date 
-          ? { ...standup, isHighlight: !standup.isHighlight } 
-          : standup
-      )
-    );
+    try {
+      await standupOperations.toggleHighlight(date);
+      
+      // Update the local state to reflect the change
+      setRecentStandups(prevStandups => 
+        prevStandups.map(standup => 
+          standup.date === date 
+            ? { ...standup, isHighlight: !standup.isHighlight } 
+            : standup
+        )
+      );
+    } catch (err) {
+      console.error('Error toggling highlight:', err);
+      setError('Failed to update highlight status');
+    }
   };
   
-  const handleDelete = (date: string) => {
+  const handleDelete = async (date: string) => {
     if (window.confirm('Are you sure you want to delete this standup?')) {
       console.log('Dashboard: Deleting standup for date:', date);
-      dispatch(deleteStandup(date));
       
-      setRecentStandups(prevStandups => 
-        prevStandups.filter(standup => standup.date !== date)
-      );
+      try {
+        await standupOperations.deleteStandup(date, false);
+        
+        // Update the local state to reflect the deletion
+        setRecentStandups(prevStandups => 
+          prevStandups.filter(standup => standup.date !== date)
+        );
+      } catch (err) {
+        console.error('Error deleting standup:', err);
+        setError('Failed to delete standup');
+      }
     }
   };
   
   const renderStats = () => {
-    if (loadingStats || !stats) {
+    if (loadingStats) {
       return <LoadingMessage>Loading stats...</LoadingMessage>;
+    }
+    
+    if (!stats) {
+      return <ErrorMessage>Unable to load statistics</ErrorMessage>;
     }
     
     return (
@@ -241,17 +290,21 @@ const Dashboard: React.FC = () => {
         </StatCard>
         
         <StatCard>
-          <StatValue>{stats.highlights.count}</StatValue>
+          <StatValue>{stats.highlights?.count || 0}</StatValue>
           <StatLabel>Highlights</StatLabel>
         </StatCard>
         
         <StatCard>
-          <StatValue>{stats.moodStats.average ? stats.moodStats.average.toFixed(1) : '-'}</StatValue>
+          <StatValue>
+            {stats.moodStats?.average ? stats.moodStats.average.toFixed(1) : '-'}
+          </StatValue>
           <StatLabel>Avg. Mood</StatLabel>
         </StatCard>
         
         <StatCard>
-          <StatValue>{stats.productivityStats.average ? stats.productivityStats.average.toFixed(1) : '-'}</StatValue>
+          <StatValue>
+            {stats.productivityStats?.average ? stats.productivityStats.average.toFixed(1) : '-'}
+          </StatValue>
           <StatLabel>Avg. Productivity</StatLabel>
         </StatCard>
       </StatsGrid>
@@ -259,11 +312,11 @@ const Dashboard: React.FC = () => {
   };
   
   const renderTopTags = () => {
-    if (loadingStats || !stats) {
+    if (loadingStats) {
       return <LoadingMessage>Loading tags...</LoadingMessage>;
     }
     
-    if (stats.tagsStats.topTags.length === 0) {
+    if (!stats || !stats.tagsStats || !stats.tagsStats.topTags || stats.tagsStats.topTags.length === 0) {
       return <p>No tags found.</p>;
     }
     
@@ -295,6 +348,8 @@ const Dashboard: React.FC = () => {
         </div>
       </WelcomeSection>
       
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+      
       <DashboardGrid>
         <GridSection>
           <SectionTitle>
@@ -303,12 +358,12 @@ const Dashboard: React.FC = () => {
             <ViewAllLink to="/standups">View All</ViewAllLink>
           </SectionTitle>
           
-          {loading ? (
+          {loading && displayStandups.length === 0 ? (
             <LoadingMessage>Loading standups...</LoadingMessage>
-          ) : recentStandups.length === 0 ? (
+          ) : displayStandups.length === 0 ? (
             <p>No standups found. Get started by creating your first standup!</p>
           ) : (
-            recentStandups.map((standup) => (
+            displayStandups.map((standup) => (
               <StandupCard
                 key={standup.date}
                 standup={standup}
