@@ -63,6 +63,40 @@ const ErrorMessage = styled.div`
   color: var(--error-color);
 `;
 
+const EmptyStateContainer = styled.div`
+  text-align: center;
+  padding: 3rem 2rem;
+  background-color: var(--card-background);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+const EmptyStateIcon = styled.div`
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+`;
+
+const EmptyStateText = styled.p`
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+`;
+
+const EmptyStateButton = styled(Link)`
+  display: inline-block;
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  
+  &:hover {
+    background-color: var(--primary-dark);
+  }
+`;
+
 const MonthSelector = styled.div`
   display: flex;
   align-items: center;
@@ -153,11 +187,14 @@ const MonthlyFocus: React.FC = () => {
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [noData, setNoData] = useState(false);
   
   useEffect(() => {
     const fetchMonthlySummary = async () => {
       try {
         setLoading(true);
+        setError(null);
+        setNoData(false);
         
         // Format month as YYYY-MM for API
         const month = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
@@ -165,7 +202,13 @@ const MonthlyFocus: React.FC = () => {
         const response = await queryAPI.getMonthlySummary(month);
         
         if (response && response.data) {
-          setMonthlySummary(response.data);
+          if (response.data.totalEntries === 0) {
+            // We have a response but no entries for this month
+            setNoData(true);
+            setMonthlySummary(null);
+          } else {
+            setMonthlySummary(response.data);
+          }
         } else {
           throw new Error('Invalid response format');
         }
@@ -201,16 +244,100 @@ const MonthlyFocus: React.FC = () => {
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   };
   
+  // Empty state component
+  const EmptyState = () => (
+    <EmptyStateContainer>
+      <EmptyStateIcon>📅</EmptyStateIcon>
+      <EmptyStateText>No standup entries for {formatMonth(currentDate)}</EmptyStateText>
+      <EmptyStateButton to="/standup/new">Add a standup entry</EmptyStateButton>
+    </EmptyStateContainer>
+  );
+  
   if (loading) {
-    return <LoadingMessage>Loading monthly focus data...</LoadingMessage>;
+    return (
+      <PageContainer>
+        <PageHeader>
+          <Title>Monthly Focus</Title>
+          <BackLink to="/">← Back to dashboard</BackLink>
+        </PageHeader>
+        
+        <MonthSelector>
+          <MonthButton onClick={goToPreviousMonth}>
+            ←
+          </MonthButton>
+          <CurrentMonth>{formatMonth(currentDate)}</CurrentMonth>
+          <MonthButton 
+            onClick={goToNextMonth}
+            disabled={
+              currentDate.getMonth() === new Date().getMonth() && 
+              currentDate.getFullYear() === new Date().getFullYear()
+            }
+          >
+            →
+          </MonthButton>
+        </MonthSelector>
+        
+        <LoadingMessage>Loading monthly focus data...</LoadingMessage>
+      </PageContainer>
+    );
   }
   
   if (error) {
-    return <ErrorMessage>Error: {error}</ErrorMessage>;
+    return (
+      <PageContainer>
+        <PageHeader>
+          <Title>Monthly Focus</Title>
+          <BackLink to="/">← Back to dashboard</BackLink>
+        </PageHeader>
+        
+        <MonthSelector>
+          <MonthButton onClick={goToPreviousMonth}>
+            ←
+          </MonthButton>
+          <CurrentMonth>{formatMonth(currentDate)}</CurrentMonth>
+          <MonthButton 
+            onClick={goToNextMonth}
+            disabled={
+              currentDate.getMonth() === new Date().getMonth() && 
+              currentDate.getFullYear() === new Date().getFullYear()
+            }
+          >
+            →
+          </MonthButton>
+        </MonthSelector>
+        
+        <ErrorMessage>Error: {error}</ErrorMessage>
+      </PageContainer>
+    );
   }
   
-  if (!monthlySummary) {
-    return <ErrorMessage>No data available for this month</ErrorMessage>;
+  if (noData || !monthlySummary) {
+    return (
+      <PageContainer>
+        <PageHeader>
+          <Title>Monthly Focus</Title>
+          <BackLink to="/">← Back to dashboard</BackLink>
+        </PageHeader>
+        
+        <MonthSelector>
+          <MonthButton onClick={goToPreviousMonth}>
+            ←
+          </MonthButton>
+          <CurrentMonth>{formatMonth(currentDate)}</CurrentMonth>
+          <MonthButton 
+            onClick={goToNextMonth}
+            disabled={
+              currentDate.getMonth() === new Date().getMonth() && 
+              currentDate.getFullYear() === new Date().getFullYear()
+            }
+          >
+            →
+          </MonthButton>
+        </MonthSelector>
+        
+        <EmptyState />
+      </PageContainer>
+    );
   }
   
   // Prepare data for tag distribution pie chart

@@ -2,16 +2,34 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import configureStore from 'redux-mock-store';
 import Header from '../../../components/layout/Header';
 
-// Wrapper to provide router context
-const renderWithRouter = (ui: React.ReactNode) => {
-  return render(<BrowserRouter>{ui}</BrowserRouter>);
+// Create mock store
+const mockStore = configureStore([]);
+const initialState = {
+  auth: {
+    isAuthenticated: false,
+    user: null,
+    loading: false,
+    error: null
+  }
+};
+
+// Wrapper to provide router and redux context
+const renderWithRouterAndRedux = (ui: React.ReactNode, storeState = initialState) => {
+  const store = mockStore(storeState);
+  return render(
+    <Provider store={store}>
+      <BrowserRouter>{ui}</BrowserRouter>
+    </Provider>
+  );
 };
 
 describe('Header Component', () => {
   it('renders the Header with logo and navigation links', () => {
-    renderWithRouter(<Header />);
+    renderWithRouterAndRedux(<Header />);
     
     // Check for logo
     const logo = screen.getByText('StandupSync');
@@ -29,7 +47,7 @@ describe('Header Component', () => {
   });
   
   it('has the correct logo icon', () => {
-    renderWithRouter(<Header />);
+    renderWithRouterAndRedux(<Header />);
     
     // Check for the logo icon
     const logoIcon = screen.getByText('📝');
@@ -37,7 +55,7 @@ describe('Header Component', () => {
   });
 
   it('applies correct styling to the header', () => {
-    const { container } = renderWithRouter(<Header />);
+    const { container } = renderWithRouterAndRedux(<Header />);
     
     // Check the header element for styling attributes
     const headerElement = container.firstChild;
