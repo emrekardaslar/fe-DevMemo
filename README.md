@@ -16,6 +16,7 @@ Experience StandupSync in action at [https://fe-devmemo.onrender.com](https://fe
 - **Vite** - Build tool and development server
 - **Vitest** - Testing framework
 - **Recharts** - Data visualization
+- **Google Gemini AI** - Natural language processing and AI-powered insights
 
 ## Getting Started
 
@@ -83,9 +84,15 @@ frontend/
 - **Tagging System** - Categorize entries with tags (e.g., #frontend, #backend)
 - **Mood & Productivity Tracking** - Track your mood and productivity over time
 - **Natural Language Queries** - Search your entries using natural language
+  - **AI-Powered Analysis** - Get insights from Gemini AI-powered analysis of your standups
+  - **Smart Visualization** - See your data displayed in intuitive, context-aware formats
+  - **Enhanced UI** - Modern, Gemini AI-styled interface for query results with responsive animations
+  - **Suggestion System** - Get helpful query suggestions and examples
+  - **Type-specific Rendering** - Specialized display formats for different response types (summaries, blockers, etc.)
 - **Highlight Important Entries** - Mark important entries for quick reference
 - **Weekly & Monthly Summaries** - Get insights into your work patterns
 - **Blocker Analysis** - Track and analyze blockers over time
+- **Tag Insights** - Visual representation of most-used tags and patterns
 
 ## Environment Variables
 
