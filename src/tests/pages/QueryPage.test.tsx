@@ -47,18 +47,23 @@ describe('QueryPage Component', () => {
   });
 
   it('handles query submission', async () => {
+    const mockResponseData = [
+      {
+        date: '2023-05-01',
+        yesterday: 'Worked on API endpoints',
+        today: 'Working on tests',
+        blockers: 'None',
+        tags: ['api', 'testing'],
+        mood: 4,
+        productivity: 5
+      }
+    ];
+    
     const mockResponse = {
-      data: [
-        {
-          date: '2023-05-01',
-          yesterday: 'Worked on API endpoints',
-          today: 'Working on tests',
-          blockers: 'None',
-          tags: ['api', 'testing'],
-          mood: 4,
-          productivity: 5
-        }
-      ]
+      data: {
+        success: true,
+        data: mockResponseData
+      }
     };
     
     (queryAPI.processQuery as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse);
@@ -75,6 +80,10 @@ describe('QueryPage Component', () => {
     // Wait for results
     await waitFor(() => {
       expect(queryAPI.processQuery).toHaveBeenCalledWith('tag:api');
+    });
+    
+    // Add a data-testid to make it easier to test
+    await waitFor(() => {
       expect(screen.getByText(/Worked on API endpoints/i)).toBeInTheDocument();
     });
   });

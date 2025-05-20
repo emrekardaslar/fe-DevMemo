@@ -1045,7 +1045,62 @@ const QueryPage: React.FC = () => {
             <div style={{ marginTop: '1rem' }}>
               {typeof data === 'object' && data !== null ? (
                 <>
-                  {Object.entries(data).map(([key, value]) => {
+                  {/* Special handling for array of standups with 'yesterday', 'today', etc. properties */}
+                  {Array.isArray(data) && data.length > 0 && data[0].yesterday && (
+                    <div>
+                      {data.map((standup, index) => (
+                        <div key={index} style={{ marginBottom: '1rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h4 style={{ color: '#3498db', margin: '0', fontSize: '1rem', fontWeight: '600' }}>
+                              {new Date(standup.date).toLocaleDateString()}
+                            </h4>
+                          </div>
+                          
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <div style={{ marginBottom: '0.5rem' }}>
+                              <span style={{ fontWeight: '500' }}>Yesterday: </span>
+                              <span>{standup.yesterday}</span>
+                            </div>
+                            
+                            <div style={{ marginBottom: '0.5rem' }}>
+                              <span style={{ fontWeight: '500' }}>Today: </span>
+                              <span>{standup.today}</span>
+                            </div>
+                            
+                            {standup.blockers && (
+                              <div style={{ marginBottom: '0.5rem' }}>
+                                <span style={{ fontWeight: '500' }}>Blockers: </span>
+                                <span>{standup.blockers}</span>
+                              </div>
+                            )}
+                            
+                            {standup.tags && standup.tags.length > 0 && (
+                              <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                                {standup.tags.map((tag: string, tagIndex: number) => (
+                                  <span 
+                                    key={tagIndex}
+                                    style={{
+                                      backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                                      color: '#3498db',
+                                      padding: '0.2rem 0.5rem',
+                                      borderRadius: '12px',
+                                      fontSize: '0.8rem'
+                                    }}
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Default rendering for other object types */}
+                  {(!Array.isArray(data) || (Array.isArray(data) && data.length > 0 && !data[0].yesterday)) && 
+                    Object.entries(data).map(([key, value]) => {
                     // Skip empty arrays or objects
                     if (
                       (Array.isArray(value) && value.length === 0) ||
