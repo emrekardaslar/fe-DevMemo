@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LoginForm from '../../components/auth/LoginForm';
 import { RootState } from '../../redux/store';
+import '../../styles/auth.css';
 
 const LoginPage: React.FC = () => {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
@@ -20,13 +21,9 @@ const LoginPage: React.FC = () => {
   }, [isAuthenticated, navigate, from]);
   
   return (
-    <div className="auth-page container">
-      <div className="row justify-content-center">
-        <div className="col-md-6 col-lg-5">
-          <div className="auth-card">
-            <LoginForm />
-          </div>
-        </div>
+    <div className="auth-page">
+      <div className="auth-card">
+        <LoginForm />
       </div>
     </div>
   );

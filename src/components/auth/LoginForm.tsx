@@ -9,6 +9,7 @@ const LoginForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{ email?: string; password?: string }>({});
+  const [touched, setTouched] = useState<{ email: boolean; password: boolean }>({ email: false, password: false });
   
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -25,14 +26,24 @@ const LoginForm: React.FC = () => {
     
     if (!password) {
       errors.password = 'Password is required';
+    } else if (password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
     }
     
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
+
+  const handleBlur = (field: 'email' | 'password') => {
+    setTouched({ ...touched, [field]: true });
+    validateForm();
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Mark all fields as touched on submit
+    setTouched({ email: true, password: true });
     
     if (!validateForm()) {
       return;
@@ -48,7 +59,16 @@ const LoginForm: React.FC = () => {
   
   return (
     <div className="login-form">
-      <h2>Login</h2>
+      <div className="auth-header">
+        <div className="logo-container">
+          <svg className="auth-logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#3498db" />
+            <path d="M2 17L12 22L22 17V7L12 12L2 7V17Z" fill="#2980b9" />
+          </svg>
+        </div>
+        <h2>Login to StandupSync</h2>
+        <p className="auth-subtitle">Welcome back! Please enter your details</p>
+      </div>
       
       {error && (
         <div className="alert alert-danger">{error}</div>
@@ -56,16 +76,19 @@ const LoginForm: React.FC = () => {
       
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">Email Address</label>
           <input
             type="email"
             id="email"
-            className={`form-control ${validationErrors.email ? 'is-invalid' : ''}`}
+            className={`form-control ${touched.email && validationErrors.email ? 'is-invalid' : ''}`}
+            placeholder="name@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => handleBlur('email')}
             disabled={loading}
+            autoComplete="email"
           />
-          {validationErrors.email && (
+          {touched.email && validationErrors.email && (
             <div className="invalid-feedback">{validationErrors.email}</div>
           )}
         </div>
@@ -75,12 +98,15 @@ const LoginForm: React.FC = () => {
           <input
             type="password"
             id="password"
-            className={`form-control ${validationErrors.password ? 'is-invalid' : ''}`}
+            className={`form-control ${touched.password && validationErrors.password ? 'is-invalid' : ''}`}
+            placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onBlur={() => handleBlur('password')}
             disabled={loading}
+            autoComplete="current-password"
           />
-          {validationErrors.password && (
+          {touched.password && validationErrors.password && (
             <div className="invalid-feedback">{validationErrors.password}</div>
           )}
         </div>
@@ -99,10 +125,10 @@ const LoginForm: React.FC = () => {
           </label>
         </div>
         
-        <div className="d-flex justify-content-between align-items-center">
+        <div className="d-flex">
           <button 
             type="submit" 
-            className="btn btn-primary"
+            className={`btn btn-primary ${loading ? 'btn-loading' : ''}`}
             disabled={loading}
           >
             {loading ? 'Logging in...' : 'Login'}
