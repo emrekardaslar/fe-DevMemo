@@ -851,345 +851,389 @@ const QueryPage: React.FC = () => {
     // Direct data access - this handles when data is directly on result object (not nested)
     const data = result?.data || {};
     
-    // Weekly summary
-    if (data.period) {
-      const accomplishments = data.accomplishments || [];
-      const plans = data.plans || [];
-      const blockers = data.blockers || [];
-      const tags = data.tags || [];
-      
-      return (
-        <>
-          <SummaryCard>
-            <SummaryHeader><FiCalendar /> Period: {data.period}</SummaryHeader>
-            <p>Total entries: {accomplishments.length}</p>
-          </SummaryCard>
-          
-          <SummaryCard>
-            <SummaryHeader><FiBarChart /> Accomplishments</SummaryHeader>
-            {accomplishments.length > 0 ? (
-              <ul>
-                {accomplishments.map((item: any, index: number) => (
-                  <li key={index}>
-                    <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.done}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No accomplishments recorded for this period.</p>
-            )}
-          </SummaryCard>
-          
-          <SummaryCard>
-            <SummaryHeader><FiBarChart /> Plans</SummaryHeader>
-            {plans.length > 0 ? (
-              <ul>
-                {plans.map((item: any, index: number) => (
-                  <li key={index}>
-                    <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.plan}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No plans recorded for this period.</p>
-            )}
-          </SummaryCard>
-          
-          {blockers.length > 0 && (
+    // Special handling for various data types
+    if (data.period || data.month || (Array.isArray(data) && data.length > 0 && data[0].blocker)) {
+      // Weekly summary
+      if (data.period) {
+        const accomplishments = data.accomplishments || [];
+        const plans = data.plans || [];
+        const blockers = data.blockers || [];
+        const tags = data.tags || [];
+        
+        return (
+          <>
             <SummaryCard>
-              <SummaryHeader><FiAlertCircle /> Blockers</SummaryHeader>
-              <ul>
-                {blockers.map((item: any, index: number) => (
-                  <li key={index}>
-                    <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.blocker}
-                  </li>
-                ))}
-              </ul>
+              <SummaryHeader><FiCalendar /> Period: {data.period}</SummaryHeader>
+              <p>Total entries: {accomplishments.length}</p>
             </SummaryCard>
-          )}
-          
-          {tags.length > 0 && (
+            
             <SummaryCard>
-              <SummaryHeader><FiTag /> Tags</SummaryHeader>
-              <StandupTags>
-                {tags.map((tag: string, index: number) => (
-                  <StandupTag key={index}><FiTag /> {tag}</StandupTag>
-                ))}
-              </StandupTags>
+              <SummaryHeader><FiBarChart /> Accomplishments</SummaryHeader>
+              {accomplishments.length > 0 ? (
+                <ul>
+                  {accomplishments.map((item: any, index: number) => (
+                    <li key={index}>
+                      <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.done}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No accomplishments recorded for this period.</p>
+              )}
             </SummaryCard>
-          )}
-          
-          <DataVisualization>
-            <VisualizationTitle><FiBarChart /> Tag Distribution</VisualizationTitle>
-            <TagCloud>
-              {tags.map((tag: string, index: number) => (
-                <TagCloudItem 
-                  key={index}
-                  size={1}
-                  onClick={() => handleSuggestedQuery(`Show me standups tagged with ${tag}`)}
-                >
-                  {tag}
-                </TagCloudItem>
-              ))}
-            </TagCloud>
-          </DataVisualization>
-        </>
-      );
-    }
-    
-    // Monthly summary
-    if (data.month) {
-      return (
-        <>
-          <SummaryCard>
-            <SummaryHeader><FiCalendar /> Month: {data.month}</SummaryHeader>
-            <p>Total entries: {data.totalEntries}</p>
-          </SummaryCard>
-          
-          {data.topTags.length > 0 && (
+            
             <SummaryCard>
-              <SummaryHeader><FiTag /> Top Tags</SummaryHeader>
+              <SummaryHeader><FiBarChart /> Plans</SummaryHeader>
+              {plans.length > 0 ? (
+                <ul>
+                  {plans.map((item: any, index: number) => (
+                    <li key={index}>
+                      <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.plan}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No plans recorded for this period.</p>
+              )}
+            </SummaryCard>
+            
+            {blockers.length > 0 && (
+              <SummaryCard>
+                <SummaryHeader><FiAlertCircle /> Blockers</SummaryHeader>
+                <ul>
+                  {blockers.map((item: any, index: number) => (
+                    <li key={index}>
+                      <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.blocker}
+                    </li>
+                  ))}
+                </ul>
+              </SummaryCard>
+            )}
+            
+            {tags.length > 0 && (
+              <SummaryCard>
+                <SummaryHeader><FiTag /> Tags</SummaryHeader>
+                <StandupTags>
+                  {tags.map((tag: string, index: number) => (
+                    <StandupTag key={index}><FiTag /> {tag}</StandupTag>
+                  ))}
+                </StandupTags>
+              </SummaryCard>
+            )}
+            
+            <DataVisualization>
+              <VisualizationTitle><FiBarChart /> Tag Distribution</VisualizationTitle>
               <TagCloud>
-                {data.topTags.map((tag: any, index: number) => (
+                {tags.map((tag: string, index: number) => (
                   <TagCloudItem 
                     key={index}
-                    size={tag.count}
-                    onClick={() => handleSuggestedQuery(`Show me standups tagged with ${tag.tag}`)}
+                    size={1}
+                    onClick={() => handleSuggestedQuery(`Show me standups tagged with ${tag}`)}
                   >
-                    {tag.tag} ({tag.count})
+                    {tag}
                   </TagCloudItem>
                 ))}
               </TagCloud>
+            </DataVisualization>
+          </>
+        );
+      }
+      
+      // Monthly summary
+      if (data.month) {
+        return (
+          <>
+            <SummaryCard>
+              <SummaryHeader><FiCalendar /> Month: {data.month}</SummaryHeader>
+              <p>Total entries: {data.totalEntries}</p>
             </SummaryCard>
-          )}
-          
-          {data.weeklySummaries.map((week: any, weekIndex: number) => (
-            <SummaryCard key={weekIndex}>
-              <SummaryHeader><FiCalendar /> {week.week}</SummaryHeader>
-              <h4>Accomplishments:</h4>
-              <ul>
-                {week.accomplishments.map((item: any, index: number) => (
-                  <li key={index}>
-                    <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.done}
-                  </li>
-                ))}
-              </ul>
-              
-              <h4>Tags:</h4>
-              <StandupTags>
-                {week.tags.map((tag: string, index: number) => (
-                  <StandupTag key={index}><FiTag /> {tag}</StandupTag>
-                ))}
-              </StandupTags>
-            </SummaryCard>
-          ))}
-        </>
-      );
+            
+            {data.topTags.length > 0 && (
+              <SummaryCard>
+                <SummaryHeader><FiTag /> Top Tags</SummaryHeader>
+                <TagCloud>
+                  {data.topTags.map((tag: any, index: number) => (
+                    <TagCloudItem 
+                      key={index}
+                      size={tag.count}
+                      onClick={() => handleSuggestedQuery(`Show me standups tagged with ${tag.tag}`)}
+                    >
+                      {tag.tag} ({tag.count})
+                    </TagCloudItem>
+                  ))}
+                </TagCloud>
+              </SummaryCard>
+            )}
+            
+            {data.weeklySummaries.map((week: any, weekIndex: number) => (
+              <SummaryCard key={weekIndex}>
+                <SummaryHeader><FiCalendar /> {week.week}</SummaryHeader>
+                <h4>Accomplishments:</h4>
+                <ul>
+                  {week.accomplishments.map((item: any, index: number) => (
+                    <li key={index}>
+                      <strong>{new Date(item.date).toLocaleDateString()}</strong>: {item.done}
+                    </li>
+                  ))}
+                </ul>
+                
+                <h4>Tags:</h4>
+                <StandupTags>
+                  {week.tags.map((tag: string, index: number) => (
+                    <StandupTag key={index}><FiTag /> {tag}</StandupTag>
+                  ))}
+                </StandupTags>
+              </SummaryCard>
+            ))}
+          </>
+        );
+      }
+      
+      // Blockers
+      if (Array.isArray(data) && data.length > 0 && data[0].blocker) {
+        return (
+          <>
+            {data.map((blocker: any, index: number) => (
+              <SummaryCard key={index}>
+                <SummaryHeader><FiAlertCircle /> {blocker.blocker}</SummaryHeader>
+                <p>Occurrences: {blocker.occurrences}</p>
+                <p>Dates:</p>
+                <ul>
+                  {blocker.dates.map((date: string, dateIndex: number) => (
+                    <li key={dateIndex}>
+                      <Link to={`/standups/${date}`}>
+                        {new Date(date).toLocaleDateString()}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </SummaryCard>
+            ))}
+          </>
+        );
+      }
     }
     
-    // Blockers
-    if (Array.isArray(data) && data.length > 0 && data[0].blocker) {
-      return (
-        <>
-          {data.map((blocker: any, index: number) => (
-            <SummaryCard key={index}>
-              <SummaryHeader><FiAlertCircle /> {blocker.blocker}</SummaryHeader>
-              <p>Occurrences: {blocker.occurrences}</p>
-              <p>Dates:</p>
-              <ul>
-                {blocker.dates.map((date: string, dateIndex: number) => (
-                  <li key={dateIndex}>
-                    <Link to={`/standups/${date}`}>
-                      {new Date(date).toLocaleDateString()}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </SummaryCard>
-          ))}
-        </>
-      );
-    }
-    
-    // Generic JSON data fallback - display any other data format
+    // Render all response data in a Gemini AI-styled container
     return (
-      <>
-        <SummaryCard>
-          <SummaryHeader><FiInfo /> Query Results</SummaryHeader>
-          
+      <SummaryCard>
+        <div style={{
+          background: 'rgba(52, 152, 219, 0.05)',
+          padding: '1.5rem',
+          borderRadius: '12px',
+          border: '1px solid rgba(52, 152, 219, 0.1)',
+          marginTop: '1rem',
+          position: 'relative',
+          lineHeight: '1.6'
+        }}>
           <div style={{
-            background: 'rgba(52, 152, 219, 0.05)',
-            padding: '1.5rem',
-            borderRadius: '12px',
-            border: '1px solid rgba(52, 152, 219, 0.1)',
-            marginTop: '1rem',
-            position: 'relative',
-            lineHeight: '1.6'
+            position: 'absolute',
+            top: '-12px',
+            left: '20px',
+            background: '#3498db',
+            color: 'white',
+            padding: '4px 12px',
+            borderRadius: '16px',
+            fontSize: '0.9rem',
+            fontWeight: '500'
           }}>
-            <div style={{
-              position: 'absolute',
-              top: '-12px',
-              left: '20px',
-              background: '#3498db',
-              color: 'white',
-              padding: '4px 12px',
-              borderRadius: '16px',
-              fontSize: '0.9rem',
-              fontWeight: '500'
-            }}>
-              Gemini AI
-            </div>
-            
-            <p style={{ fontWeight: '500', fontSize: '1.1rem', marginTop: '0.5rem' }}>
-              Based on your query about {query && `"${query}"` || "your standups"}, here's what I found:
-            </p>
-            
-            <div style={{ marginTop: '1rem' }}>
-              {typeof data === 'object' && data !== null ? (
-                <>
-                  {/* Special handling for array of standups with 'yesterday', 'today', etc. properties */}
-                  {Array.isArray(data) && data.length > 0 && data[0].yesterday && (
-                    <div>
-                      {data.map((standup, index) => (
-                        <div key={index} style={{ marginBottom: '1rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h4 style={{ color: '#3498db', margin: '0', fontSize: '1rem', fontWeight: '600' }}>
-                              {new Date(standup.date).toLocaleDateString()}
-                            </h4>
+            Gemini AI
+          </div>
+          
+          <p style={{ fontWeight: '500', fontSize: '1.1rem', marginTop: '0.5rem' }}>
+            Based on your query about {query && `"${query}"` || "your standups"}, here's what I found:
+          </p>
+          
+          <div style={{ marginTop: '1rem' }}>
+            {typeof data === 'object' && data !== null ? (
+              <div className="results-container">
+                {/* Special handling for standups array */}
+                {Array.isArray(data) && data.length > 0 && data[0].yesterday && (
+                  <div className="standups-list">
+                    {data.map((standup, index) => (
+                      <div key={index} style={{ 
+                        marginBottom: '1rem',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(52, 152, 219, 0.05)',
+                        border: '1px solid rgba(52, 152, 219, 0.1)'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <h4 style={{ color: '#3498db', margin: '0', fontSize: '1rem', fontWeight: '600' }}>
+                            {new Date(standup.date).toLocaleDateString()}
+                          </h4>
+                        </div>
+                        
+                        <div style={{ marginTop: '0.5rem' }}>
+                          <div style={{ marginBottom: '0.5rem' }}>
+                            <span style={{ fontWeight: '500' }}>Yesterday: </span>
+                            <span>{standup.yesterday}</span>
                           </div>
                           
-                          <div style={{ marginTop: '0.5rem' }}>
-                            <div style={{ marginBottom: '0.5rem' }}>
-                              <span style={{ fontWeight: '500' }}>Yesterday: </span>
-                              <span>{standup.yesterday}</span>
-                            </div>
-                            
-                            <div style={{ marginBottom: '0.5rem' }}>
-                              <span style={{ fontWeight: '500' }}>Today: </span>
-                              <span>{standup.today}</span>
-                            </div>
-                            
-                            {standup.blockers && (
-                              <div style={{ marginBottom: '0.5rem' }}>
-                                <span style={{ fontWeight: '500' }}>Blockers: </span>
-                                <span>{standup.blockers}</span>
-                              </div>
-                            )}
-                            
-                            {standup.tags && standup.tags.length > 0 && (
-                              <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                                {standup.tags.map((tag: string, tagIndex: number) => (
-                                  <span 
-                                    key={tagIndex}
-                                    style={{
-                                      backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                                      color: '#3498db',
-                                      padding: '0.2rem 0.5rem',
-                                      borderRadius: '12px',
-                                      fontSize: '0.8rem'
-                                    }}
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
+                          <div style={{ marginBottom: '0.5rem' }}>
+                            <span style={{ fontWeight: '500' }}>Today: </span>
+                            <span>{standup.today}</span>
                           </div>
+                          
+                          {standup.blockers && (
+                            <div style={{ marginBottom: '0.5rem' }}>
+                              <span style={{ fontWeight: '500' }}>Blockers: </span>
+                              <span>{standup.blockers}</span>
+                            </div>
+                          )}
+                          
+                          {standup.tags && standup.tags.length > 0 && (
+                            <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                              {standup.tags.map((tag: string, tagIndex: number) => (
+                                <span 
+                                  key={tagIndex}
+                                  style={{
+                                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                                    color: '#3498db',
+                                    padding: '0.2rem 0.5rem',
+                                    borderRadius: '12px',
+                                    fontSize: '0.8rem'
+                                  }}
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Default rendering for other object types */}
-                  {(!Array.isArray(data) || (Array.isArray(data) && data.length > 0 && !data[0].yesterday)) && 
-                    Object.entries(data).map(([key, value]) => {
-                    // Skip empty arrays or objects
-                    if (
-                      (Array.isArray(value) && value.length === 0) ||
-                      (typeof value === 'object' && value !== null && Object.keys(value).length === 0)
-                    ) {
-                      return null;
-                    }
-                    
-                    // Format the key to be more readable
-                    const formattedKey = key
-                      .replace(/([A-Z])/g, ' $1')
-                      .replace(/^./, str => str.toUpperCase())
-                      .replace(/Id$/, 'ID');
-                    
-                    return (
-                      <div key={key} style={{ marginBottom: '1rem' }}>
-                        <h4 style={{ 
-                          color: '#3498db',
-                          margin: '0 0 0.5rem 0',
-                          fontSize: '1rem',
-                          fontWeight: '600'
-                        }}>
-                          {formattedKey}:
-                        </h4>
-                        
-                        {/* For arrays */}
-                        {Array.isArray(value) ? (
-                          <ul style={{ 
-                            margin: '0.5rem 0 0 0',
-                            paddingLeft: '1.5rem'
-                          }}>
-                            {value.map((item, index) => (
-                              <li key={index} style={{ marginBottom: '0.5rem' }}>
-                                {typeof item === 'object' && item !== null ? (
-                                  <pre style={{ 
-                                    margin: 0,
-                                    background: 'rgba(0,0,0,0.03)',
-                                    padding: '0.5rem',
-                                    borderRadius: '4px',
-                                    fontSize: '0.9rem',
-                                    overflow: 'auto'
-                                  }}>
-                                    {JSON.stringify(item, null, 2)}
-                                  </pre>
-                                ) : (
-                                  <span>{String(item)}</span>
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : typeof value === 'object' && value !== null ? (
-                          // For nested objects
-                          <pre style={{ 
-                            margin: 0,
-                            background: 'rgba(0,0,0,0.03)',
-                            padding: '0.75rem',
-                            borderRadius: '6px',
-                            fontSize: '0.9rem',
-                            overflow: 'auto'
-                          }}>
-                            {JSON.stringify(value, null, 2)}
-                          </pre>
-                        ) : (
-                          // For primitive values
-                          <p style={{ margin: '0.25rem 0 0 0' }}>{String(value)}</p>
-                        )}
                       </div>
-                    );
-                  })}
-                </>
-              ) : (
-                <p>I don't have any specific data to display for your query. Try asking something more specific about your standups.</p>
-              )}
-            </div>
-            
-            <p style={{ 
-              marginTop: '1.5rem',
-              borderTop: '1px solid rgba(52, 152, 219, 0.2)',
-              paddingTop: '1rem',
-              fontSize: '0.95rem',
-              color: '#666'
-            }}>
-              Is there anything specific from this data you'd like me to explain in more detail?
-            </p>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Insight-specific formatting */}
+                {data.insights && (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <h4 style={{ 
+                      color: '#3498db',
+                      margin: '0 0 0.75rem 0',
+                      fontSize: '1rem',
+                      fontWeight: '600'
+                    }}>
+                      Key Insights:
+                    </h4>
+                    
+                    <ul style={{ 
+                      margin: '0.5rem 0 0 0',
+                      paddingLeft: '1.5rem'
+                    }}>
+                      {data.insights.map((insight: string, index: number) => (
+                        <li key={index} style={{ marginBottom: '0.5rem' }}>
+                          {insight}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {/* Summary-specific formatting */}
+                {data.summary && (
+                  <div style={{ 
+                    marginTop: '1rem',
+                    padding: '0.75rem',
+                    backgroundColor: 'rgba(52, 152, 219, 0.05)',
+                    borderRadius: '8px',
+                    fontStyle: 'italic'
+                  }}>
+                    <strong>Summary:</strong> {data.summary}
+                  </div>
+                )}
+                
+                {/* Render remaining properties */}
+                {Object.entries(data)
+                  .filter(([key]) => !['insights', 'summary'].includes(key)) // Skip already rendered properties
+                  .map(([key, value]) => {
+                  // Skip empty arrays or objects
+                  if (
+                    (Array.isArray(value) && value.length === 0) ||
+                    (typeof value === 'object' && value !== null && Object.keys(value).length === 0)
+                  ) {
+                    return null;
+                  }
+                  
+                  // Format the key to be more readable
+                  const formattedKey = key
+                    .replace(/([A-Z])/g, ' $1')
+                    .replace(/^./, str => str.toUpperCase())
+                    .replace(/Id$/, 'ID');
+                  
+                  return (
+                    <div key={key} style={{ marginBottom: '1rem' }}>
+                      <h4 style={{ 
+                        color: '#3498db',
+                        margin: '0 0 0.5rem 0',
+                        fontSize: '1rem',
+                        fontWeight: '600'
+                      }}>
+                        {formattedKey}:
+                      </h4>
+                      
+                      {/* For arrays */}
+                      {Array.isArray(value) ? (
+                        <ul style={{ 
+                          margin: '0.5rem 0 0 0',
+                          paddingLeft: '1.5rem'
+                        }}>
+                          {value.map((item, index) => (
+                            <li key={index} style={{ marginBottom: '0.5rem' }}>
+                              {typeof item === 'object' && item !== null ? (
+                                <pre style={{ 
+                                  margin: 0,
+                                  background: 'rgba(0,0,0,0.03)',
+                                  padding: '0.5rem',
+                                  borderRadius: '4px',
+                                  fontSize: '0.9rem',
+                                  overflow: 'auto'
+                                }}>
+                                  {JSON.stringify(item, null, 2)}
+                                </pre>
+                              ) : (
+                                <span>{String(item)}</span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : typeof value === 'object' && value !== null ? (
+                        // For nested objects
+                        <pre style={{ 
+                          margin: 0,
+                          background: 'rgba(0,0,0,0.03)',
+                          padding: '0.75rem',
+                          borderRadius: '6px',
+                          fontSize: '0.9rem',
+                          overflow: 'auto'
+                        }}>
+                          {JSON.stringify(value, null, 2)}
+                        </pre>
+                      ) : (
+                        // For primitive values
+                        <p style={{ margin: '0.25rem 0 0 0' }}>{String(value)}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p>I don't have any specific data to display for your query. Try asking something more specific about your standups.</p>
+            )}
           </div>
-        </SummaryCard>
-      </>
+          
+          <p style={{ 
+            marginTop: '1.5rem',
+            borderTop: '1px solid rgba(52, 152, 219, 0.2)',
+            paddingTop: '1rem',
+            fontSize: '0.95rem',
+            color: '#666'
+          }}>
+            Is there anything specific from this data you'd like me to explain in more detail?
+          </p>
+        </div>
+      </SummaryCard>
     );
   };
   

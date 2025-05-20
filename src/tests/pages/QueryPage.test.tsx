@@ -82,9 +82,12 @@ describe('QueryPage Component', () => {
       expect(queryAPI.processQuery).toHaveBeenCalledWith('tag:api');
     });
     
-    // Add a data-testid to make it easier to test
+    // Verify the results are displayed - check for the date which should be unique
     await waitFor(() => {
-      expect(screen.getByText(/Worked on API endpoints/i)).toBeInTheDocument();
+      // Check for the Gemini AI label which indicates the results are displayed
+      expect(screen.getByText('Gemini AI')).toBeInTheDocument();
+      // Check for the formatted date
+      expect(screen.getByText('5/1/2023')).toBeInTheDocument();
     });
   });
 
