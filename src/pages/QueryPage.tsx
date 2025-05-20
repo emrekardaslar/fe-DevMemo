@@ -8,22 +8,41 @@ import { FiSearch, FiX, FiChevronRight, FiAlertCircle, FiInfo, FiTag, FiBarChart
 const PageContainer = styled.div`
   max-width: 900px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 1.5rem;
 `;
 
 const PageHeader = styled.div`
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1rem;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 80px;
+    height: 3px;
+    background-color: var(--primary-color);
+    border-radius: 3px;
+  }
 `;
 
 const Title = styled.h1`
-  font-size: 1.75rem;
+  font-size: 2rem;
   margin: 0 0 0.5rem 0;
+  background: linear-gradient(90deg, var(--primary-color) 0%, #36a3e0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-fill-color: transparent;
 `;
 
 const Subtitle = styled.p`
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: var(--text-secondary);
   margin: 0;
+  line-height: 1.5;
 `;
 
 const QueryContainer = styled.div`
@@ -33,23 +52,36 @@ const QueryContainer = styled.div`
 const QueryForm = styled.form`
   display: flex;
   margin-top: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
   overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  
+  &:focus-within {
+    box-shadow: 0 6px 16px rgba(52, 152, 219, 0.15);
+    transform: translateY(-2px);
+  }
 `;
 
 const QueryInput = styled.input`
   flex: 1;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
+  padding: 0.85rem 1.2rem;
+  font-size: 1.05rem;
   border: 1px solid var(--border-color);
   border-right: none;
   border-radius: 8px 0 0 8px;
+  transition: all 0.2s ease;
   
   &:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: inset 0 0 0 2px rgba(52, 152, 219, 0.2);
+  }
+  
+  &::placeholder {
+    color: #aaa;
+    font-style: italic;
   }
 `;
 
@@ -57,22 +89,32 @@ const QueryButton = styled.button`
   background-color: var(--primary-color);
   color: white;
   border: none;
-  padding: 0 1.5rem;
-  font-size: 1rem;
+  padding: 0 1.8rem;
+  font-size: 1.05rem;
   font-weight: 500;
   border-radius: 0 8px 8px 0;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  transition: all 0.2s ease;
   
   &:hover {
     background-color: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   
   &:disabled {
     background-color: var(--text-secondary);
     cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 `;
 
@@ -102,25 +144,30 @@ const QueryCategoriesContainer = styled.div`
 
 const QueryCategory = styled.div`
   background-color: var(--card-background);
-  padding: 1.25rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  padding: 1.35rem;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
   }
 `;
 
 const CategoryTitle = styled.div`
-  font-size: 1rem;
-  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+  margin: 0 0 0.85rem 0;
   color: var(--primary-color);
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-weight: 500;
+  
+  svg {
+    font-size: 1.2rem;
+  }
 `;
 
 const SuggestedQueries = styled.div`
@@ -137,30 +184,44 @@ const SuggestedQueryButton = styled.button`
   background: none;
   border: 1px solid var(--border-color);
   border-radius: 20px;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.85rem;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.9rem;
   color: var(--text-color);
   margin-right: 0.5rem;
   margin-bottom: 0.5rem;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.35rem;
+  transition: all 0.2s ease;
+  
+  svg {
+    font-size: 1rem;
+    opacity: 0.8;
+  }
   
   &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: rgba(52, 152, 219, 0.1);
     border-color: var(--primary-color);
     color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  &:active {
+    transform: translateY(0);
+    box-shadow: none;
   }
 `;
 
 const ResultsContainer = styled.div`
   background-color: var(--card-background);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 1.75rem;
   margin-bottom: 2rem;
   animation: fadeIn 0.3s ease-in-out;
+  border: 1px solid rgba(0, 0, 0, 0.05);
   
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
@@ -172,14 +233,22 @@ const ResultsHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--border-color);
 `;
 
 const ResultsTitle = styled.h2`
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   margin: 0;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  svg {
+    font-size: 1.2rem;
+  }
 `;
 
 const QueryText = styled.p`
@@ -187,41 +256,46 @@ const QueryText = styled.p`
   color: var(--text-secondary);
   margin: 0;
   background-color: rgba(0, 0, 0, 0.05);
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
   max-width: 300px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 0.95rem;
 `;
 
 const ResultsContent = styled.div`
   line-height: 1.6;
+  font-size: 1.05rem;
 `;
 
 const AnswerContainer = styled.div`
   background-color: rgba(52, 152, 219, 0.1);
-  border-left: 3px solid var(--primary-color);
-  padding: 1rem;
-  margin: 1rem 0;
-  font-size: 1.1rem;
+  border-left: 4px solid var(--primary-color);
+  padding: 1.25rem;
+  margin: 1.25rem 0;
+  font-size: 1.15rem;
+  line-height: 1.6;
+  border-radius: 0 8px 8px 0;
 `;
 
 const StandupsList = styled.div`
-  margin-top: 1.5rem;
+  margin-top: 2rem;
 `;
 
 const StandupItem = styled.div`
-  padding: 1rem;
-  margin-bottom: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 12px;
   background-color: white;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
   }
   
   &:last-child {
@@ -233,8 +307,12 @@ const StandupDate = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--primary-color);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 `;
 
 const StandupHighlight = styled.span`
@@ -249,71 +327,99 @@ const StandupHighlight = styled.span`
   gap: 0.25rem;
 `;
 
-const StandupTags = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  flex-wrap: wrap;
-`;
-
-const StandupTag = styled.span`
-  background-color: rgba(52, 152, 219, 0.1);
-  color: var(--primary-color);
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-`;
-
 const StandupContent = styled.div`
-  margin: 0.5rem 0;
+  margin: 0.75rem 0;
+  display: grid;
+  gap: 1rem;
 `;
 
 const StandupField = styled.div`
   margin-bottom: 0.75rem;
   
   h4 {
-    margin: 0 0 0.25rem 0;
-    font-size: 0.9rem;
+    margin: 0 0 0.35rem 0;
+    font-size: 0.95rem;
     color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 600;
   }
   
   p {
     margin: 0;
     white-space: pre-line;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: rgba(0, 0, 0, 0.02);
+    padding: 0.75rem;
+    border-radius: 6px;
+  }
+`;
+
+const StandupTags = styled.div`
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+`;
+
+const StandupTag = styled.span`
+  background-color: rgba(52, 152, 219, 0.1);
+  color: var(--primary-color);
+  font-size: 0.8rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 500;
+  
+  svg {
+    font-size: 0.9rem;
   }
 `;
 
 const StandupLink = styled(Link)`
   display: inline-flex;
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
+  margin-top: 1rem;
+  font-size: 0.95rem;
   color: var(--primary-color);
   text-decoration: none;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-weight: 500;
   
   &:hover {
-    text-decoration: underline;
+    text-decoration: none;
+    background-color: rgba(52, 152, 219, 0.1);
+    transform: translateX(3px);
   }
 `;
 
 const LoadingMessage = styled.div`
   text-align: center;
-  padding: 2rem;
+  padding: 3rem;
   color: var(--text-secondary);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  font-size: 1.1rem;
 `;
 
 const LoadingSpinner = styled.div`
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(0, 0, 0, 0.1);
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(52, 152, 219, 0.1);
   border-radius: 50%;
   border-top-color: var(--primary-color);
   animation: spin 1s ease-in-out infinite;
@@ -325,14 +431,23 @@ const LoadingSpinner = styled.div`
 
 const ErrorMessage = styled.div`
   text-align: center;
-  padding: 1.5rem;
+  padding: 2rem;
   color: var(--error-color);
   background-color: rgba(231, 76, 60, 0.1);
-  border-radius: 8px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin: 1rem 0;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+  border: 1px solid rgba(231, 76, 60, 0.2);
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.05);
+  font-size: 1.05rem;
+  
+  svg {
+    font-size: 1.5rem;
+    color: var(--error-color);
+  }
 `;
 
 const NoResultsMessage = styled.div`
@@ -367,24 +482,47 @@ const Tab = styled.button<{ active: boolean }>`
 
 const SummaryCard = styled.div`
   background-color: white;
-  padding: 1.25rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
+  padding: 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 1.25rem;
   border: 1px solid var(--border-color);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+  }
+  
+  h4 {
+    font-size: 1rem;
+    margin: 1rem 0 0.5rem;
+    color: var(--text-secondary);
+  }
+  
+  ul {
+    margin-top: 0.75rem;
+    padding-left: 1.5rem;
+    
+    li {
+      margin-bottom: 0.5rem;
+      line-height: 1.5;
+    }
   }
 `;
 
 const SummaryHeader = styled.div`
-  font-weight: 500;
-  margin-bottom: 0.5rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-size: 1.15rem;
+  color: var(--primary-color);
+  
+  svg {
+    font-size: 1.2rem;
+  }
 `;
 
 const QueryHistoryContainer = styled.div`
@@ -403,52 +541,88 @@ const QueryHistoryList = styled.div`
 `;
 
 const DataVisualization = styled.div`
-  margin: 1.5rem 0;
+  margin: 1.75rem 0;
   background-color: white;
-  padding: 1.25rem;
-  border-radius: 8px;
+  padding: 1.5rem;
+  border-radius: 10px;
   border: 1px solid var(--border-color);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 `;
 
 const VisualizationTitle = styled.h3`
-  font-size: 1rem;
-  margin: 0 0 1rem 0;
+  font-size: 1.15rem;
+  margin: 0 0 1.25rem 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  color: var(--primary-color);
+  
+  svg {
+    font-size: 1.2rem;
+  }
 `;
 
 const TagCloud = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 1rem 0;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
 `;
 
 const TagCloudItem = styled.div<{ size: number }>`
-  font-size: ${props => 0.7 + (props.size * 0.05)}rem;
+  font-size: ${props => 0.8 + (props.size * 0.05)}rem;
   background-color: rgba(52, 152, 219, 0.1);
   color: var(--primary-color);
-  padding: 0.25rem 0.75rem;
+  padding: 0.35rem 0.85rem;
   border-radius: 20px;
   transition: all 0.2s;
   cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   
   &:hover {
     background-color: rgba(52, 152, 219, 0.2);
-    transform: scale(1.05);
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  &:active {
+    transform: scale(1) translateY(0);
+  }
+  
+  &::before {
+    content: "•";
+    font-size: 1.2em;
+    line-height: 0;
+    opacity: 0.7;
   }
 `;
 
 const TipsContainer = styled.div`
   background-color: rgba(46, 204, 113, 0.1);
-  border-left: 3px solid #2ecc71;
-  padding: 1rem;
-  margin: 1rem 0;
-  font-size: 0.9rem;
+  border-left: 4px solid #2ecc71;
+  padding: 1.25rem;
+  margin: 1.25rem 0;
+  font-size: 0.95rem;
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 2px 6px rgba(46, 204, 113, 0.1);
+  line-height: 1.6;
+  
+  svg {
+    font-size: 1.25rem;
+    color: #2ecc71;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+  
+  strong {
+    color: #27ae60;
+  }
 `;
 
 interface QueryResult {
@@ -466,7 +640,6 @@ interface ProcessedStandup extends Standup {
 const QueryPage: React.FC = () => {
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<QueryResult | null>(null);
-  const [rawResponse, setRawResponse] = useState<any>(null); // Store raw response for debugging
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [relatedStandups, setRelatedStandups] = useState<ProcessedStandup[]>([]);
@@ -577,7 +750,6 @@ const QueryPage: React.FC = () => {
     setLoading(true);
     setError(null);
     setResult(null);
-    setRawResponse(null);
     setRelatedStandups([]);
     setActiveTab('results');
     
@@ -586,9 +758,6 @@ const QueryPage: React.FC = () => {
     
     try {
       const response = await queryAPI.processQuery(query);
-      
-      // Store the raw response for debugging
-      setRawResponse(response);
       
       // Extract the actual data from the nested response
       const responseData = response.data;
@@ -945,24 +1114,6 @@ const QueryPage: React.FC = () => {
         )}
       </QueryContainer>
       
-      {/* Debug display for development - can be removed in production */}
-      {rawResponse && (
-        <div style={{ 
-          margin: '1rem 0', 
-          padding: '1rem', 
-          background: '#f8f9fa', 
-          border: '1px solid #dee2e6',
-          borderRadius: '4px'
-        }}>
-          <details>
-            <summary style={{ fontWeight: 'bold', cursor: 'pointer' }}>Debug: Raw Response</summary>
-            <pre style={{ marginTop: '1rem', overflow: 'auto' }}>
-              {JSON.stringify(rawResponse, null, 2)}
-            </pre>
-          </details>
-        </div>
-      )}
-      
       {loading && (
         <LoadingMessage>
           <LoadingSpinner />
@@ -980,7 +1131,7 @@ const QueryPage: React.FC = () => {
       {!loading && !error && result && (
         <ResultsContainer>
           <ResultsHeader>
-            <ResultsTitle>Results</ResultsTitle>
+            <ResultsTitle><FiInfo /> Results</ResultsTitle>
             <QueryText>"{query}"</QueryText>
           </ResultsHeader>
           
