@@ -762,21 +762,23 @@ const QueryPage: React.FC = () => {
       // Extract the actual data from the nested response
       const responseData = response.data;
       
+      // Prepare the result with a consistent structure
+      let resultData;
+      
       // Check if we have a success field in the response
       if (responseData && responseData.success !== undefined) {
         // This is the backend API response format where data is nested
-        
-        const actualData = responseData.data;
-        const result = {
-          answer: `Here are the results for your query about "${query}"`,
-          data: actualData
-        };
-        
-        setResult(result);
+        resultData = responseData.data;
       } else {
         // Direct response format
-        setResult(responseData);
+        resultData = responseData;
       }
+      
+      // Set the result with a consistent structure and message
+      setResult({
+        answer: `Here are the results for your query about "${query}"`,
+        data: resultData
+      });
       
     } catch (error) {
       setError('An error occurred processing your query. Please try again.');
