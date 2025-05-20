@@ -134,9 +134,11 @@ const LoginForm: React.FC = () => {
             {loading ? 'Logging in...' : 'Login'}
           </button>
           
+          {/* Forgot password feature not implemented yet
           <a href="/forgot-password" className="text-secondary">
             Forgot password?
           </a>
+          */}
         </div>
       </form>
       
