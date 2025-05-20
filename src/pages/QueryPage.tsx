@@ -1014,17 +1014,123 @@ const QueryPage: React.FC = () => {
       <>
         <SummaryCard>
           <SummaryHeader><FiInfo /> Query Results</SummaryHeader>
-          <p>Here are the results for your query:</p>
           
-          <pre style={{ 
-            background: 'rgba(0,0,0,0.05)', 
-            padding: '1rem', 
-            borderRadius: '4px',
-            overflow: 'auto',
-            maxHeight: '400px'
+          <div style={{
+            background: 'rgba(52, 152, 219, 0.05)',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            border: '1px solid rgba(52, 152, 219, 0.1)',
+            marginTop: '1rem',
+            position: 'relative',
+            lineHeight: '1.6'
           }}>
-            {JSON.stringify(data, null, 2)}
-          </pre>
+            <div style={{
+              position: 'absolute',
+              top: '-12px',
+              left: '20px',
+              background: '#3498db',
+              color: 'white',
+              padding: '4px 12px',
+              borderRadius: '16px',
+              fontSize: '0.9rem',
+              fontWeight: '500'
+            }}>
+              Gemini AI
+            </div>
+            
+            <p style={{ fontWeight: '500', fontSize: '1.1rem', marginTop: '0.5rem' }}>
+              Based on your query about {query && `"${query}"` || "your standups"}, here's what I found:
+            </p>
+            
+            <div style={{ marginTop: '1rem' }}>
+              {typeof data === 'object' && data !== null ? (
+                <>
+                  {Object.entries(data).map(([key, value]) => {
+                    // Skip empty arrays or objects
+                    if (
+                      (Array.isArray(value) && value.length === 0) ||
+                      (typeof value === 'object' && value !== null && Object.keys(value).length === 0)
+                    ) {
+                      return null;
+                    }
+                    
+                    // Format the key to be more readable
+                    const formattedKey = key
+                      .replace(/([A-Z])/g, ' $1')
+                      .replace(/^./, str => str.toUpperCase())
+                      .replace(/Id$/, 'ID');
+                    
+                    return (
+                      <div key={key} style={{ marginBottom: '1rem' }}>
+                        <h4 style={{ 
+                          color: '#3498db',
+                          margin: '0 0 0.5rem 0',
+                          fontSize: '1rem',
+                          fontWeight: '600'
+                        }}>
+                          {formattedKey}:
+                        </h4>
+                        
+                        {/* For arrays */}
+                        {Array.isArray(value) ? (
+                          <ul style={{ 
+                            margin: '0.5rem 0 0 0',
+                            paddingLeft: '1.5rem'
+                          }}>
+                            {value.map((item, index) => (
+                              <li key={index} style={{ marginBottom: '0.5rem' }}>
+                                {typeof item === 'object' && item !== null ? (
+                                  <pre style={{ 
+                                    margin: 0,
+                                    background: 'rgba(0,0,0,0.03)',
+                                    padding: '0.5rem',
+                                    borderRadius: '4px',
+                                    fontSize: '0.9rem',
+                                    overflow: 'auto'
+                                  }}>
+                                    {JSON.stringify(item, null, 2)}
+                                  </pre>
+                                ) : (
+                                  <span>{String(item)}</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : typeof value === 'object' && value !== null ? (
+                          // For nested objects
+                          <pre style={{ 
+                            margin: 0,
+                            background: 'rgba(0,0,0,0.03)',
+                            padding: '0.75rem',
+                            borderRadius: '6px',
+                            fontSize: '0.9rem',
+                            overflow: 'auto'
+                          }}>
+                            {JSON.stringify(value, null, 2)}
+                          </pre>
+                        ) : (
+                          // For primitive values
+                          <p style={{ margin: '0.25rem 0 0 0' }}>{String(value)}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              ) : (
+                <p>I don't have any specific data to display for your query. Try asking something more specific about your standups.</p>
+              )}
+            </div>
+            
+            <p style={{ 
+              marginTop: '1.5rem',
+              borderTop: '1px solid rgba(52, 152, 219, 0.2)',
+              paddingTop: '1rem',
+              fontSize: '0.95rem',
+              color: '#666'
+            }}>
+              Is there anything specific from this data you'd like me to explain in more detail?
+            </p>
+          </div>
         </SummaryCard>
       </>
     );
