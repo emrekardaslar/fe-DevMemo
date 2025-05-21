@@ -124,3 +124,7 @@ If you'd like to contribute to the frontend:
 ## Related
 
 - [Backend README](https://github.com/emrekardaslar/be-devmemo/blob/main/README.md) - Information about the backend
+
+---
+
+**Note:** This frontend project (and its companion backend) is an experimental project built using Cursor (an AI-powered IDE) and memory banks. It serves as a trial to explore the capabilities of Cursor's AI assistant and memory bank tools. As such, the project's design, documentation, and implementation reflect an experimental approach to leveraging AI-driven development workflows.
