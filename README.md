@@ -104,10 +104,6 @@ VITE_API_URL=http://localhost:4000/api  # For development
 
 For production, the API URL is automatically set to `https://be-devmemo.onrender.com/api`.
 
-## Testing
-
-The frontend uses Vitest for testing. See [TESTING.md](../memory-bank/TESTING.md) for more details on testing strategy and guidelines.
-
 ## Deployment
 
 The application is configured for deployment on Render.com. See [RENDER-INSTRUCTIONS.md](./RENDER-INSTRUCTIONS.md) for detailed deployment instructions.
